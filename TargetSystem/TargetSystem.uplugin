@@ -3,13 +3,14 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "TargetSystem",
-	"Description": "Dark Souls Inspired Camera Lock On / Targeting system",
-	"Category": "Other",
+	"Description": "Dark Souls inspired Camera Lock On / Targeting system",
+	"Category": "Targeting",
 	"CreatedBy": "Mickael Daniel <mklabs>",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
+	"EnabledByDefault": true,
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"Installed": false,
@@ -17,7 +18,12 @@
 		{
 			"Name": "TargetSystem",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32",
+				"HTML5"
+			]
 		}
 	]
 }

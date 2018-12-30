@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "Engine/Public/TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/Classes/Camera/CameraComponent.h"
 #include "EngineUtils.h"
 
 // Sets default values for this component's properties
@@ -16,12 +17,13 @@ UTargetSystemComponent::UTargetSystemComponent()
 	MinimumDistanceToEnable = 1200.0f;
 	ClosestTargetDistance = 0.0f;
 	TargetLocked = false;
-	TargerLockedOnWidgetDrawSize = 32.0f;
-	TargerLockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 20.0f);
+	TargetLockedOnWidgetDrawSize = 32.0f;
+	TargetLockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 20.0f);
 	BreakLineOfSightDelay = 2.0f;
 	bIsBreakingLineOfSight = false;
 	ShouldControlRotationWhenLockedOn = true;
 	StartRotatingThreshold = 1.5f;
+	bIsSwitchingTarget = false;
 
 	TargetableActors = APawn::StaticClass();
 }
@@ -56,14 +58,11 @@ void UTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		// Target Locked Off based on Distance
 		if (GetDistanceFromCharacter(NearestTarget) > MinimumDistanceToEnable)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Target lock off"));
 			TargetLockOff();
 		}
 
 		if (ShouldBreakLineOfSight() && !bIsBreakingLineOfSight)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Should break line of sight"));
-
 			if (BreakLineOfSightDelay <= 0)
 			{
 				TargetLockOff();
@@ -83,43 +82,163 @@ void UTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UTargetSystemComponent::TargetActor()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Target Actor ..."));
-
 	ClosestTargetDistance = MinimumDistanceToEnable;
 
 	if (TargetLocked)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Target is locked already ..."));
 		TargetLockOff();
 	} else
 	{
-		TargetLockOn();
+		TArray<AActor*> Actors = GetAllActorsOfClass(TargetableActors);
+		NearestTarget = FindNearestTarget(Actors);
+		TargetLockOn(NearestTarget);
 	}
 }
 
 void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue)
 {
-	if (FMath::Abs(AxisValue) >= StartRotatingThreshold)
+	// If Axis value does not exceeds configured threshold, do nothing
+	if (FMath::Abs(AxisValue) < StartRotatingThreshold)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Target Actor with Axis Input: %f..."), *CharacterReference->GetName(), AxisValue);
+		return;
+	}
+
+	// If we're not locked on, do nothing
+	if (!TargetLocked)
+	{
+		return;
+	}
+
+	// If we're switching target, do nothing for a set amount of time
+	if (bIsSwitchingTarget)
+	{
+		return;
+	}
+	
+	// Lock off target
+	AActor* CurrentTarget = NearestTarget;
+
+	// Depending on Axis Value negative / positive, set Direction to Look for (negative: left, positive: right)
+	float RangeMin = AxisValue < 0 ? 0 : 180;
+	float RangeMax = AxisValue < 0 ? 180 : 360;
+
+	// Reset Closest Target Distance to Minimum Distance to Enable
+	ClosestTargetDistance = MinimumDistanceToEnable;
+
+	// Get All Actors of Class
+	TArray<AActor*> Actors = GetAllActorsOfClass(TargetableActors);
+	
+	// For each of these actors, check line trace and ignore Current Target and build the list of actors to look from
+	TArray<AActor*> ActorsToLook;
+
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(CurrentTarget);
+	for (AActor* Actor : Actors)
+	{
+		bool bHit = LineTraceForActor(Actor, ActorsToIgnore);
+		if (bHit && IsInViewport(Actor))
+		{
+			ActorsToLook.Add(Actor);
+		}
+	}
+
+	// Find Targets in Range (left or right, based on Character and CurrentTarget)
+	TArray<AActor*> TargetsInRange = FindTargetsInRange(ActorsToLook, RangeMin, RangeMax);
+
+	// For each of these targets in range, get the closest one to current target
+	AActor* ActorToTarget = nullptr;
+	for (AActor* Actor : TargetsInRange)
+	{
+		// and filter out any character too distant from minimum distance to enable
+		float Distance = GetDistanceFromCharacter(Actor);
+		if (Distance < MinimumDistanceToEnable)
+		{
+			float RelativeActorsDistance = CurrentTarget->GetDistanceTo(Actor);
+			if (RelativeActorsDistance < ClosestTargetDistance)
+			{
+				ClosestTargetDistance = RelativeActorsDistance;
+				ActorToTarget = Actor;
+			}
+		}
+	}
+
+	if (ActorToTarget)
+	{
+		bIsSwitchingTarget = true;
+		TargetLockOff();
+		NearestTarget = ActorToTarget;
+		TargetLockOn(ActorToTarget);
+		GetWorld()->GetTimerManager().SetTimer(
+			SwitchingTargetTimerHandle,
+			this,
+			&UTargetSystemComponent::ResetIsSwitchingTarget,
+			0.5f
+		);
 	}
 }
 
-void UTargetSystemComponent::TargetLockOn()
+TArray<AActor*> UTargetSystemComponent::FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax)
 {
-	TArray<AActor*> Actors = GetAllActorsOfClass(TargetableActors);
-	NearestTarget = FindNearestTarget(Actors);
-	if (NearestTarget)
+	TArray<AActor*> ActorsInRange;
+
+	for (AActor* Actor : ActorsToLook)
+	{
+		float Angle = GetAngleUsingCameraRotation(Actor);
+		if (Angle > RangeMin && Angle < RangeMax)
+		{
+			ActorsInRange.Add(Actor);
+		}
+	}
+
+	return ActorsInRange;
+}
+
+float UTargetSystemComponent::GetAngleUsingCameraRotation(AActor* ActorToLook)
+{
+	UCameraComponent* CameraComponent = CharacterReference->FindComponentByClass<UCameraComponent>();
+	if (!CameraComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TargetSystem::GetAngleUsingCameraRotation() Cannot get reference to camera component"));
+		return 0.0f;
+	}
+
+	FRotator CameraWorldRotation = CameraComponent->GetComponentRotation();
+	FRotator LookAtRotation = FindLookAtRotation(CameraComponent->GetComponentLocation(), ActorToLook->GetActorLocation());
+
+	float YawAngle = CameraWorldRotation.Yaw - LookAtRotation.Yaw;
+	if (YawAngle < 0)
+	{
+		YawAngle = YawAngle + 360;
+	}
+
+	return YawAngle;
+}
+
+FRotator UTargetSystemComponent::FindLookAtRotation(const FVector Start, const FVector Target)
+{
+	return FRotationMatrix::MakeFromX(Target - Start).Rotator();
+}
+
+void UTargetSystemComponent::ResetIsSwitchingTarget()
+{
+	bIsSwitchingTarget = false;
+}
+
+void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
+{
+	if (TargetToLockOn)
 	{
 		TargetLocked = true;
-		CreateAndAttachTargetLockedOnWidgetComponent(NearestTarget);
+		CreateAndAttachTargetLockedOnWidgetComponent(TargetToLockOn);
 
 		if (ShouldControlRotationWhenLockedOn)
 		{
 			ControlRotation(true);
 		}
 
-		OnTargetLockedOn.Broadcast(NearestTarget);
+		CharacterController->SetIgnoreLookInput(true);
+
+		OnTargetLockedOn.Broadcast(TargetToLockOn);
 	}
 }
 
@@ -137,6 +256,8 @@ void UTargetSystemComponent::TargetLockOff()
 		{
 			ControlRotation(false);
 		}
+
+		CharacterController->ResetIgnoreLookInput();
 
 		OnTargetLockedOff.Broadcast(NearestTarget);
 	}
@@ -157,8 +278,8 @@ void UTargetSystemComponent::CreateAndAttachTargetLockedOnWidgetComponent(AActor
 
 	TargetLockedOnWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	TargetLockedOnWidgetComponent->SetupAttachment(TargetActor->GetRootComponent());
-	TargetLockedOnWidgetComponent->SetRelativeLocation(TargerLockedOnWidgetRelativeLocation);
-	TargetLockedOnWidgetComponent->SetDrawSize(FVector2D(TargerLockedOnWidgetDrawSize, TargerLockedOnWidgetDrawSize));
+	TargetLockedOnWidgetComponent->SetRelativeLocation(TargetLockedOnWidgetRelativeLocation);
+	TargetLockedOnWidgetComponent->SetDrawSize(FVector2D(TargetLockedOnWidgetDrawSize, TargetLockedOnWidgetDrawSize));
 	TargetLockedOnWidgetComponent->SetVisibility(true);
 	TargetLockedOnWidgetComponent->RegisterComponent();
 }
@@ -267,7 +388,7 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor)
 	// Find look at rotation
 	FRotator LookRotation = FRotationMatrix::MakeFromX(OtherActorLocation - CharacterLocation).Rotator();
 
-	FRotator TargetRotation = FRotator(ControlRotation.Pitch, LookRotation.Yaw, ControlRotation.Roll);
+	FRotator TargetRotation = FRotator(LookRotation.Pitch, LookRotation.Yaw, ControlRotation.Roll);
 
 	return FMath::RInterpTo(ControlRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 5.0f);
 }
@@ -286,7 +407,6 @@ float UTargetSystemComponent::GetDistanceFromCharacter(AActor* OtherActor)
 {
 	return CharacterReference->GetDistanceTo(OtherActor);
 }
-
 
 bool UTargetSystemComponent::ShouldBreakLineOfSight()
 {
@@ -313,7 +433,6 @@ void UTargetSystemComponent::BreakLineOfSight()
 	bIsBreakingLineOfSight = false;
 	if (ShouldBreakLineOfSight())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Break line of Sight"));
 		TargetLockOff();
 	}
 }
@@ -335,7 +454,6 @@ void UTargetSystemComponent::ControlRotation(bool ShouldControlRotation)
 
 bool UTargetSystemComponent::IsInViewport(AActor* TargetActor)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Check if is in Viewport for: %s"), *TargetActor->GetName());
 	if (!PlayerController)
 	{
 		return true;

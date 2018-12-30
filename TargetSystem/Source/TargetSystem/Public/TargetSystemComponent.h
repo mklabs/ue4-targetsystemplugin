@@ -10,6 +10,12 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentOnTargetLockedOnOff, AActor*, TargetActor);
 
+enum class ETargetSystemDirection
+{
+	Left,
+	Right
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARGETSYSTEM_API UTargetSystemComponent : public UActorComponent
 {
@@ -29,7 +35,7 @@ public:
 
 	// The Widget Draw Size for the Widget class to use when locked on Target.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float TargerLockedOnWidgetDrawSize;
+	float TargetLockedOnWidgetDrawSize;
 
 	// The amount of time to break line of sight when actor gets behind an Object.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
@@ -47,7 +53,7 @@ public:
 
 	// The Relative Location to apply on Target LockedOn Widget when attached to a target.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	FVector TargerLockedOnWidgetRelativeLocation;
+	FVector TargetLockedOnWidgetRelativeLocation;
 
 	// The AActor Subclass to search for targetable Actors.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
@@ -80,6 +86,8 @@ private:
 	UWidgetComponent* TargetLockedOnWidgetComponent;
 	FTimerHandle LineOfSightBreakTimerHandle;
 	bool bIsBreakingLineOfSight;
+	FTimerHandle SwitchingTargetTimerHandle;
+	bool bIsSwitchingTarget;
 
 	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass);
 	AActor* FindNearestTarget(TArray<AActor*> Actors);
@@ -93,10 +101,14 @@ private:
 	void ControlRotation(bool ShouldControlRotation);
 	bool IsInViewport(AActor* TargetActor);
 
-	void TargetLockOn();
+	void TargetLockOn(AActor* TargetToLockOn);
 	void TargetLockOff();
 
 	float GetDistanceFromCharacter(AActor* OtherActor);
+	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax);
+	float GetAngleUsingCameraRotation(AActor* ActorToLook);
+	FRotator FindLookAtRotation(const FVector Start, const FVector Target);
+	void ResetIsSwitchingTarget();
 
 protected:
 	// Called when the game starts
