@@ -10,12 +10,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentOnTargetLockedOnOff, AActor*, TargetActor);
 
-enum class ETargetSystemDirection
-{
-	Left,
-	Right
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARGETSYSTEM_API UTargetSystemComponent : public UActorComponent
 {
