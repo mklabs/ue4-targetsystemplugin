@@ -104,6 +104,8 @@ private:
 	FRotator FindLookAtRotation(const FVector Start, const FVector Target);
 	void ResetIsSwitchingTarget();
 
+	bool TargetIsTargetable(AActor* Actor);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

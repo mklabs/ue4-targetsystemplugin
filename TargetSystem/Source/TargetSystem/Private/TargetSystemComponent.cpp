@@ -7,6 +7,7 @@
 #include "Engine/Public/TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Classes/Camera/CameraComponent.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
 // Sets default values for this component's properties
@@ -36,15 +37,15 @@ void UTargetSystemComponent::BeginPlay()
 	if (!CharacterReference)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get Owner reference ..."), *this->GetName());
+		return;
 	}
 
-	CharacterController = CharacterReference->GetInstigatorController();
-	if (!CharacterController)
+	PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get Controller reference ..."), *CharacterReference->GetName());
+		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get PlayerController reference ..."), *CharacterReference->GetName());
+		return;
 	}
-
-	PlayerController = Cast<APlayerController>(CharacterController);
 }
 
 void UTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
@@ -53,6 +54,12 @@ void UTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 	if (TargetLocked && NearestTarget)
 	{
+		if (!TargetIsTargetable(NearestTarget))
+		{
+			TargetLockOff();
+			return;
+		}
+
 		SetControlRotationOnTarget(NearestTarget);
 
 		// Target Locked Off based on Distance
@@ -66,7 +73,8 @@ void UTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			if (BreakLineOfSightDelay <= 0)
 			{
 				TargetLockOff();
-			} else
+			}
+			else
 			{
 				bIsBreakingLineOfSight = true;
 				GetWorld()->GetTimerManager().SetTimer(
@@ -87,7 +95,8 @@ void UTargetSystemComponent::TargetActor()
 	if (TargetLocked)
 	{
 		TargetLockOff();
-	} else
+	}
+	else
 	{
 		TArray<AActor*> Actors = GetAllActorsOfClass(TargetableActors);
 		NearestTarget = FindNearestTarget(Actors);
@@ -114,7 +123,7 @@ void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue)
 	{
 		return;
 	}
-	
+
 	// Lock off target
 	AActor* CurrentTarget = NearestTarget;
 
@@ -127,7 +136,7 @@ void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue)
 
 	// Get All Actors of Class
 	TArray<AActor*> Actors = GetAllActorsOfClass(TargetableActors);
-	
+
 	// For each of these actors, check line trace and ignore Current Target and build the list of actors to look from
 	TArray<AActor*> ActorsToLook;
 
@@ -236,7 +245,7 @@ void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 			ControlRotation(true);
 		}
 
-		CharacterController->SetIgnoreLookInput(true);
+		PlayerController->SetIgnoreLookInput(true);
 
 		OnTargetLockedOn.Broadcast(TargetToLockOn);
 	}
@@ -257,7 +266,7 @@ void UTargetSystemComponent::TargetLockOff()
 			ControlRotation(false);
 		}
 
-		CharacterController->ResetIgnoreLookInput();
+		PlayerController->ResetIgnoreLookInput();
 
 		OnTargetLockedOff.Broadcast(NearestTarget);
 	}
@@ -271,7 +280,8 @@ void UTargetSystemComponent::CreateAndAttachTargetLockedOnWidgetComponent(AActor
 	if (TargetLockedOnWidgetClass)
 	{
 		TargetLockedOnWidgetComponent->SetWidgetClass(TargetLockedOnWidgetClass);
-	} else
+	}
+	else
 	{
 		TargetLockedOnWidgetComponent->SetWidgetClass(UTargetSystemLockOnWidget::StaticClass());
 	}
@@ -290,21 +300,25 @@ TArray<AActor*> UTargetSystemComponent::GetAllActorsOfClass(TSubclassOf<AActor> 
 	for (TActorIterator<AActor> ActorIterator(GetWorld(), ActorClass); ActorIterator; ++ActorIterator)
 	{
 		AActor* Actor = *ActorIterator;
-		bool bIsImplemented = Actor->GetClass()->ImplementsInterface(UTargetSystemTargetableInterface::StaticClass());
-		if (bIsImplemented)
-		{
-			bool bIsTargetable = ITargetSystemTargetableInterface::Execute_IsTargetable(Actor);
-			if (bIsTargetable)
-			{
-				Actors.Add(Actor);
-			}
-		} else
+		bool IsTargetable = TargetIsTargetable(Actor);
+		if (IsTargetable)
 		{
 			Actors.Add(Actor);
 		}
 	}
 
 	return Actors;
+}
+
+bool UTargetSystemComponent::TargetIsTargetable(AActor* Actor)
+{
+	bool bIsImplemented = Actor->GetClass()->ImplementsInterface(UTargetSystemTargetableInterface::StaticClass());
+	if (bIsImplemented)
+	{
+		return ITargetSystemTargetableInterface::Execute_IsTargetable(Actor);
+	}
+
+	return true;
 }
 
 AActor* UTargetSystemComponent::FindNearestTarget(TArray<AActor*> Actors)
@@ -380,7 +394,7 @@ bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, AActor* OtherActor
 
 FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor)
 {
-	FRotator ControlRotation = CharacterController->GetControlRotation();
+	FRotator ControlRotation = PlayerController->GetControlRotation();
 
 	FVector CharacterLocation = CharacterReference->GetActorLocation();
 	FVector OtherActorLocation = OtherActor->GetActorLocation();
@@ -395,12 +409,12 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor)
 
 void UTargetSystemComponent::SetControlRotationOnTarget(AActor* TargetActor)
 {
-	if (!CharacterController)
+	if (!PlayerController)
 	{
 		return;
 	}
 
-	CharacterController->SetControlRotation(GetControlRotationOnTarget(TargetActor));
+	PlayerController->SetControlRotation(GetControlRotationOnTarget(TargetActor));
 }
 
 float UTargetSystemComponent::GetDistanceFromCharacter(AActor* OtherActor)
