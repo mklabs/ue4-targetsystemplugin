@@ -9,7 +9,7 @@
 	"CreatedBy": "Mickael Daniel <mklabs>",
 	"CreatedByURL": "https://mklabs.github.io",
 	"DocsURL": "https://github.com/mklabs/ue4-targetsystemplugin/wiki",
-	"MarketplaceURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/6bd21ce58d6e4cb295f71bd370233f53",
 	"SupportURL": "https://github.com/mklabs/ue4-targetsystemplugin/issues",
 	"EnabledByDefault": true,
 	"CanContainContent": true,
@@ -22,8 +22,7 @@
 			"LoadingPhase": "Default",
 			"WhitelistPlatforms": [
 				"Win64",
-				"Win32",
-				"HTML5"
+				"Win32"
 			]
 		}
 	]
