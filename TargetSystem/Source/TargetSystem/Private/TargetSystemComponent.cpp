@@ -398,7 +398,7 @@ bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, AActor* OtherActor
 		HitResult,
 		CharacterReference->GetActorLocation(),
 		OtherActor->GetActorLocation(),
-		ECollisionChannel::ECC_Camera,
+		ECollisionChannel::ECC_Pawn,
 		Params
 	);
 }
