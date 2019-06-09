@@ -31,6 +31,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
 	float TargetLockedOnWidgetDrawSize;
 
+	// Whether or not the Target Lock On Widget indicator should be drawn and attached automatically.
+	// When set to false, this allows you to manually draw the widget for further control on where you'd like it to appear.
+	// OnTargetLockedOn and OnTargetLockedOff events can be used for this.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
+	bool ShouldDrawTargetLockedOnWidget;
+
 	// The amount of time to break line of sight when actor gets behind an Object.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
 	float BreakLineOfSightDelay;
@@ -57,6 +63,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActor();
 
+	// Function to call to manually untarget.
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	void TargetLockOff();
+
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActorWithAxisInput(float AxisValue);
@@ -74,7 +84,6 @@ private:
 	float ClosestTargetDistance;
 	bool TargetLocked;
 	AActor* CharacterReference;
-	AController* CharacterController;
 	APlayerController* PlayerController;
 	AActor* NearestTarget;
 	UWidgetComponent* TargetLockedOnWidgetComponent;
@@ -96,7 +105,6 @@ private:
 	bool IsInViewport(AActor* TargetActor);
 
 	void TargetLockOn(AActor* TargetToLockOn);
-	void TargetLockOff();
 
 	float GetDistanceFromCharacter(AActor* OtherActor);
 	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax);

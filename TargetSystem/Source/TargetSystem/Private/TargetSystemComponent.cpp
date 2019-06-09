@@ -25,7 +25,9 @@ UTargetSystemComponent::UTargetSystemComponent()
 	ShouldControlRotationWhenLockedOn = true;
 	StartRotatingThreshold = 1.5f;
 	bIsSwitchingTarget = false;
+	ShouldDrawTargetLockedOnWidget = true;
 
+	UE_LOG(LogTemp, Warning, TEXT("[%s] TargetSystemComponent Loaded: 4.22.0"), *this->GetName());
 	TargetableActors = APawn::StaticClass();
 }
 
@@ -238,7 +240,10 @@ void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 	if (TargetToLockOn)
 	{
 		TargetLocked = true;
-		CreateAndAttachTargetLockedOnWidgetComponent(TargetToLockOn);
+		if (ShouldDrawTargetLockedOnWidget)
+		{
+			CreateAndAttachTargetLockedOnWidgetComponent(TargetToLockOn);
+		}
 
 		if (ShouldControlRotationWhenLockedOn)
 		{
@@ -247,7 +252,10 @@ void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 
 		PlayerController->SetIgnoreLookInput(true);
 
-		OnTargetLockedOn.Broadcast(TargetToLockOn);
+		if (OnTargetLockedOn.IsBound())
+		{
+			OnTargetLockedOn.Broadcast(TargetToLockOn);
+		}
 	}
 }
 
@@ -268,7 +276,10 @@ void UTargetSystemComponent::TargetLockOff()
 
 		PlayerController->ResetIgnoreLookInput();
 
-		OnTargetLockedOff.Broadcast(NearestTarget);
+		if (OnTargetLockedOff.IsBound())
+		{
+			OnTargetLockedOff.Broadcast(NearestTarget);
+		}
 	}
 
 	NearestTarget = nullptr;

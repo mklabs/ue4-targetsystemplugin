@@ -9,18 +9,14 @@
 UTargetSystemLockOnWidget::UTargetSystemLockOnWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	UE_LOG(LogTemp, Warning, TEXT("UTargetLockOnWidget initialization"));
 }
 
 TSharedRef<SWidget> UTargetSystemLockOnWidget::RebuildWidget()
 {
 
-	UE_LOG(LogTemp, Warning, TEXT("UTargetLockOnWidget RebuildWidget()"));
-
 	UPanelWidget* RootWidget = Cast<UPanelWidget>(GetRootWidget());
 	if (!RootWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UTargetLockOnWidget RebuildWidget() No root widget create it"));
 		// Construct the root widget. Root widgets are UCanvasPanels by default in UMG
 		RootWidget = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootWidget"));
 
@@ -32,8 +28,6 @@ TSharedRef<SWidget> UTargetSystemLockOnWidget::RebuildWidget()
 	TSharedRef<SWidget> Widget = Super::RebuildWidget();
 	if (WidgetTree && RootWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WidgetTree && RootWidget"));
-
 		TextWidget = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("TextBox"));
 		TextWidget->Font.Size = 24;
 		TextWidget->SetText(FText::FromString("O"));
