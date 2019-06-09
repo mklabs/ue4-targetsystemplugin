@@ -19,7 +19,7 @@
 		{
 			"Name": "TargetSystem",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
+			"LoadingPhase": "PreDefault",
 			"WhitelistPlatforms": [
 				"Win64",
 				"Win32"
