@@ -45,6 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
 	float StartRotatingThreshold;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
+	float StartRotatingStack;
+	bool bDesireToSwitch;
+
 	// Whether or not the character rotation should be controlled when Target is locked on.
 	// If true, it'll set the value of bUseControllerRotationYaw and bOrientationToMovement variables on Target locked on / off.
 	// Set it to true if you want the character to rotate around the locked on target to enable you to setup strafe animations.
@@ -63,13 +67,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActor();
 
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	bool IsLocking() const;
+
 	// Function to call to manually untarget.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetLockOff();
 
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
-	void TargetActorWithAxisInput(float AxisValue);
+	void TargetActorWithAxisInput(float AxisValue, float Delta);
 
 	// Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
