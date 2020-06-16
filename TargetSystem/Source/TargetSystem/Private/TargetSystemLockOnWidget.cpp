@@ -29,8 +29,8 @@ TSharedRef<SWidget> UTargetSystemLockOnWidget::RebuildWidget()
 	if (WidgetTree && RootWidget)
 	{
 		TextWidget = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("TextBox"));
-		TextWidget->Font.Size = 24;
-		TextWidget->SetText(FText::FromString("O"));
+		TextWidget->Font.Size = 72;
+		TextWidget->SetText(FText::FromString("."));
 		RootWidget->AddChild(TextWidget);
 	}
 

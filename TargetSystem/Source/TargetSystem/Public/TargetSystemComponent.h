@@ -9,6 +9,7 @@
 #include "TargetSystemComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentOnTargetLockedOnOff, AActor*, TargetActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentSetRotation, AActor*, TargetActor, FRotator, ControlRotation);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TARGETSYSTEM_API UTargetSystemComponent : public UActorComponent
@@ -23,52 +24,84 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
 	float MinimumDistanceToEnable;
 
-	// The Widget Class to use when locked on Target. If not defined, will fallback to a Text-rendered widget with a single O character.
+	// The AActor Subclass to search for targetable Actors.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	TSubclassOf<UUserWidget> TargetLockedOnWidgetClass;
+    TSubclassOf<AActor> TargetableActors;
 
-	// The Widget Draw Size for the Widget class to use when locked on Target.
+	// Whether or not the character rotation should be controlled when Target is locked on.
+	//
+	// If true, it'll set the value of bUseControllerRotationYaw and bOrientationToMovement variables on Target locked on / off.
+	//
+	// Set it to true if you want the character to rotate around the locked on target to enable you to setup strafe animations.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float TargetLockedOnWidgetDrawSize;
-
-	// Whether or not the Target Lock On Widget indicator should be drawn and attached automatically.
-	// When set to false, this allows you to manually draw the widget for further control on where you'd like it to appear.
-	// OnTargetLockedOn and OnTargetLockedOff events can be used for this.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	bool ShouldDrawTargetLockedOnWidget;
+    bool bShouldControlRotation;
 
 	// The amount of time to break line of sight when actor gets behind an Object.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float BreakLineOfSightDelay;
+    float BreakLineOfSightDelay;
 
 	// Lower this value is, easier it will be to switch new target on right or left.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float StartRotatingThreshold;
+    float StartRotatingThreshold;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float StartRotatingStack;
-	bool bDesireToSwitch;
+	// Whether or not the Target LockOn Widget indicator should be drawn and attached automatically.
+	//
+	// When set to false, this allow you to manually draw the widget for further control on where you'd like it to appear.
+	//
+	// OnTargetLockedOn and OnTargetLockedOff events can be used for this.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
+	bool bShouldDrawLockedOnWidget;
 
-	// Whether or not the character rotation should be controlled when Target is locked on.
-	// If true, it'll set the value of bUseControllerRotationYaw and bOrientationToMovement variables on Target locked on / off.
-	// Set it to true if you want the character to rotate around the locked on target to enable you to setup strafe animations.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	bool ShouldControlRotationWhenLockedOn;
+	// The Widget Class to use when locked on Target. If not defined, will fallback to a Text-rendered
+	// widget with a single O character.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
+    TSubclassOf<UUserWidget> LockedOnWidgetClass;
+
+	// The Widget Draw Size for the Widget class to use when locked on Target.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
+    float LockedOnWidgetDrawSize;
+
+	// The Socket name to attach the LockedOn Widget.
+	//
+	// You should use this to configure the Bone or Socket name the widget should be attached to, and allow
+	// the widget to move with target character's animation (Ex: spine_03)
+	//
+	// Set it to None to attach the Widget Component to the Root Component instead of the Mesh.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
+    FName LockedOnWidgetParentSocket;
 
 	// The Relative Location to apply on Target LockedOn Widget when attached to a target.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	FVector TargetLockedOnWidgetRelativeLocation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
+    FVector LockedOnWidgetRelativeLocation;
 
-	// The AActor Subclass to search for targetable Actors.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	TSubclassOf<AActor> TargetableActors;
+	// Setting this to true will tell the Target System to adjust the Pitch Offset (the Y axis) when locked on,
+	// depending on the distance to the target actor.
+	//
+	// It will ensure that the Camera will be moved up vertically the closer this Actor gets to its target.
+	//
+	// Formula:
+	//
+	//   (DistanceToTarget * PitchDistanceCoefficient + PitchDistanceOffset) * -1.0f
+	//
+	// Then Clamped by PitchMin / PitchMax
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
+	bool bAdjustPitchBasedOnDistanceToTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
+    float PitchDistanceCoefficient = -0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
+    float PitchDistanceOffset = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
+	float PitchMin = -50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
+	float PitchMax = -20.0f;
 
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActor();
-
-	UFUNCTION(BlueprintCallable, Category = "Target System")
-	bool IsLocking() const;
 
 	// Function to call to manually untarget.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
@@ -76,7 +109,7 @@ public:
 
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
-	void TargetActorWithAxisInput(float AxisValue, float Delta);
+	void TargetActorWithAxisInput(float AxisValue);
 
 	// Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
@@ -86,40 +119,62 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
 	FComponentOnTargetLockedOnOff OnTargetLockedOn;
 
+    // Setup the control rotation on Tick when a target is locked on.
+    //
+    // If not implemented, will fallback to default implementation.
+    // If this event is implemented, it lets you control the rotation of the character.
+    UPROPERTY(BlueprintAssignable, Category = "Target System")
+    FComponentSetRotation OnTargetSetRotation;
+
+	// Returns the reference to currently targeted Actor if any
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	AActor* GetLockedOnTargetActor() const;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Target System")
+	AActor* LockedOnTargetActor;
+
 private:
 
-	float ClosestTargetDistance;
-	bool TargetLocked;
+	UPROPERTY()
 	AActor* CharacterReference;
-	APlayerController* PlayerController;
-	AActor* NearestTarget;
-	UWidgetComponent* TargetLockedOnWidgetComponent;
-	FTimerHandle LineOfSightBreakTimerHandle;
-	bool bIsBreakingLineOfSight;
-	FTimerHandle SwitchingTargetTimerHandle;
-	bool bIsSwitchingTarget;
 
-	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass);
-	AActor* FindNearestTarget(TArray<AActor*> Actors);
-	bool LineTrace(FHitResult& HitResult, AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>());
-	bool LineTraceForActor(AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>());
-	FRotator GetControlRotationOnTarget(AActor* OtherActor);
-	void SetControlRotationOnTarget(AActor* TargetActor);
+	UPROPERTY()
+	APlayerController* PlayerController;
+
+	UPROPERTY()
+	UWidgetComponent* TargetLockedOnWidgetComponent;
+
+	FTimerHandle LineOfSightBreakTimerHandle;
+	FTimerHandle SwitchingTargetTimerHandle;
+
+	bool bIsBreakingLineOfSight;
+	bool bIsSwitchingTarget;
+	bool bTargetLocked;
+	float ClosestTargetDistance;
+
+
+	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass) const;
+	AActor* FindNearestTarget(TArray<AActor*> Actors) const;
+	bool LineTrace(FHitResult& HitResult, AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
+	bool LineTraceForActor(AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
+	FRotator GetControlRotationOnTarget(AActor* OtherActor) const;
+	void SetControlRotationOnTarget(AActor* TargetActor) const;
 	void CreateAndAttachTargetLockedOnWidgetComponent(AActor* TargetActor);
-	bool ShouldBreakLineOfSight();
+	bool ShouldBreakLineOfSight() const;
 	void BreakLineOfSight();
-	void ControlRotation(bool ShouldControlRotation);
-	bool IsInViewport(AActor* TargetActor);
+	void ControlRotation(bool ShouldControlRotation) const;
+	bool IsInViewport(AActor* TargetActor) const;
 
 	void TargetLockOn(AActor* TargetToLockOn);
 
-	float GetDistanceFromCharacter(AActor* OtherActor);
-	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax);
-	float GetAngleUsingCameraRotation(AActor* ActorToLook);
-	FRotator FindLookAtRotation(const FVector Start, const FVector Target);
+	float GetDistanceFromCharacter(AActor* OtherActor) const;
+	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax) const;
+	float GetAngleUsingCameraRotation(AActor* ActorToLook) const;
+	float GetAngleUsingCharacterRotation(AActor* ActorToLook) const;
+	static FRotator FindLookAtRotation(const FVector Start, const FVector Target);
 	void ResetIsSwitchingTarget();
 
-	bool TargetIsTargetable(AActor* Actor);
+	static bool TargetIsTargetable(AActor* Actor);
 
 protected:
 	// Called when the game starts

@@ -1,6 +1,7 @@
 // Copyright 2018-2019 Mickael Daniel. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class TargetSystem : ModuleRules
 {
@@ -11,6 +12,7 @@ public class TargetSystem : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
+				Path.Combine(ModuleDirectory, "Public")
 			}
 			);
 				
@@ -18,6 +20,7 @@ public class TargetSystem : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
+				Path.Combine(ModuleDirectory, "Private")
 			}
 			);
 			
