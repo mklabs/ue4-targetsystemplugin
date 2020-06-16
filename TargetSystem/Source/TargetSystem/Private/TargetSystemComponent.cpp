@@ -23,8 +23,11 @@ UTargetSystemComponent::UTargetSystemComponent()
 	BreakLineOfSightDelay = 2.0f;
 	bIsBreakingLineOfSight = false;
 	ShouldControlRotationWhenLockedOn = true;
-	StartRotatingThreshold = 1.5f;
+	StartRotatingThreshold = 0.3f;
+	StartRotatingStack = 0.f;
 	bIsSwitchingTarget = false;
+	bDesireToSwitch = false;
+
 	ShouldDrawTargetLockedOnWidget = true;
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] TargetSystemComponent Loaded: 4.22.0"), *this->GetName());
@@ -106,21 +109,40 @@ void UTargetSystemComponent::TargetActor()
 	}
 }
 
-void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue)
+bool UTargetSystemComponent::IsLocking() const
 {
+	return TargetLocked;
+}
+
+void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue, float Delta)
+{
+	StartRotatingStack += (AxisValue != 0) ?  AxisValue * Delta : (StartRotatingStack > 0 ? -Delta : Delta);
+
+	if (AxisValue == 0 && FMath::Abs(StartRotatingStack) <= Delta)
+		StartRotatingStack = 0.f;
+	
 	// If Axis value does not exceeds configured threshold, do nothing
-	if (FMath::Abs(AxisValue) < StartRotatingThreshold)
+	if (FMath::Abs(StartRotatingStack) < StartRotatingThreshold)
 	{
+		bDesireToSwitch = false;
 		return;
 	}
+	else
+	{
+		//Sticky when switching target. 
+		if (StartRotatingStack * AxisValue > 0)
+			StartRotatingStack = StartRotatingStack > 0 ? StartRotatingThreshold : -StartRotatingThreshold;
+		else if (StartRotatingStack * AxisValue < 0)
+			StartRotatingStack *= -1.f;
 
-	// If we're not locked on, do nothing
+		bDesireToSwitch = true;
+	}
+		
 	if (!TargetLocked)
 	{
 		return;
 	}
 
-	// If we're switching target, do nothing for a set amount of time
 	if (bIsSwitchingTarget)
 	{
 		return;
@@ -175,16 +197,22 @@ void UTargetSystemComponent::TargetActorWithAxisInput(float AxisValue)
 
 	if (ActorToTarget)
 	{
-		bIsSwitchingTarget = true;
+		if (SwitchingTargetTimerHandle.IsValid())
+			SwitchingTargetTimerHandle.Invalidate();
+			
 		TargetLockOff();
 		NearestTarget = ActorToTarget;
 		TargetLockOn(ActorToTarget);
+
+		//Less sticky if still switching
 		GetWorld()->GetTimerManager().SetTimer(
 			SwitchingTargetTimerHandle,
 			this,
 			&UTargetSystemComponent::ResetIsSwitchingTarget,
-			0.5f
+			bIsSwitchingTarget ? 0.25f : 0.5f
 		);
+
+		bIsSwitchingTarget = true;
 	}
 }
 
@@ -233,6 +261,7 @@ FRotator UTargetSystemComponent::FindLookAtRotation(const FVector Start, const F
 void UTargetSystemComponent::ResetIsSwitchingTarget()
 {
 	bIsSwitchingTarget = false;
+	bDesireToSwitch = false;
 }
 
 void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
@@ -329,7 +358,7 @@ bool UTargetSystemComponent::TargetIsTargetable(AActor* Actor)
 		return ITargetSystemTargetableInterface::Execute_IsTargetable(Actor);
 	}
 
-	return true;
+	return false;
 }
 
 AActor* UTargetSystemComponent::FindNearestTarget(TArray<AActor*> Actors)
