@@ -15,6 +15,7 @@ It was first developed and tested in Blueprints following the implementation of 
 - Option to control character rotation when locked on.
 - Switch to new target with axis input (on mouse / gamepad axis movement).
 - Two Blueprint implementable events on component on Target Locked On and Off.
+- Adds a Pitch Offset at close range, the greater it is the closer the player gets to the target.
 
 ## Installation
 
@@ -23,24 +24,6 @@ Download the latest `TargetSystem.zip` pre-built plugin zip from the [Release pa
 ## Setup
 
 Check the [Setup and Installation wiki page](https://github.com/mklabs/ue4-targetsystemplugin/wiki/Setup-and-Installation).
-
-## Options
-
-- `float MinimumDistanceToEnable`: The minimum distance to enable target locked on.
-- `TSubclassOf<AActor> TargetableActors`: The AActor Subclass to search for targetable Actors.
-- `TSubclassOf<UUserWidget> TargetLockedOnWidgetClass`: The Widget Class to use when locked on Target. If not defined, will fallback to a Text-rendered widget with a single O character.
-- `float TargetLockedOnWidgetDrawSize`: The Widget Draw Size for the Widget class to use when locked on Target.
-- `float BreakLineOfSightDelay`: The amount of time to break line of sight when actor gets behind an Object.
-- `float StartRotatingThreshold`: Lower this value is, easier it will be to switch new target on right or left.
-- `bool ShouldControlRotationWhenLockedOn`: Whether or not the character rotation should be controlled when Target is locked on. If true, it'll set the value of bUseControllerRotationYaw and bOrientationToMovement variables on Target locked on / off. Set it to true if you want the character to rotate around the locked on target to enable you to setup strafe animations.
-- `FVector TargetLockedOnWidgetRelativeLocation`: The Relative Location to apply on Target LockedOn Widget when attached to a target.
-
-## Blueprint Functions / Events
-
-- `void TargetActor()`: Function to call to target a new actor.
-- `void TargetActorWithAxisInput(float AxisValue)`: Function to call to target a new actor with Axis input, on right or left.
-- `OnTargetLockedOff(AActor* TargetActor)`: Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
-- `OnTargetLockedOn(AActor* TargetActor)`: Called when a target is locked on.
 
 ## Thanks and Credits
 
