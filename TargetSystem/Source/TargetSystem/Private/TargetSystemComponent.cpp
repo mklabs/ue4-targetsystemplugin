@@ -1,7 +1,6 @@
 // Copyright 2018-2019 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystemComponent.h"
-#include "TargetSystemLockOnWidget.h"
 #include "TargetSystemTargetableInterface.h"
 #include "Engine/World.h"
 #include "Engine/Public/TimerManager.h"
@@ -24,13 +23,14 @@ UTargetSystemComponent::UTargetSystemComponent()
 	bIsBreakingLineOfSight = false;
 	bShouldControlRotation = true;
 	StartRotatingThreshold = 1.5f;
-	// StartRotatingThreshold = 0.3f;
 	StartRotatingStack = 0.0f;
 	bIsSwitchingTarget = false;
 	bShouldDrawLockedOnWidget = true;
 	LockedOnWidgetParentSocket = FName("spine_03");
 	bAdjustPitchBasedOnDistanceToTarget = true;
 	bDesireToSwitch = false;
+	AxisMultiplier = 1.0f;
+	StickyRotationThreshold = 30.0f;
 
 	LockedOnWidgetClass = StaticLoadClass(UObject::StaticClass(), nullptr, TEXT("/TargetSystem/UI/WBP_LockOn.WBP_LockOn_C"));
 
@@ -112,38 +112,8 @@ void UTargetSystemComponent::TargetActor()
 	}
 }
 
-void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue, const float Delta)
+void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue)
 {
-	StartRotatingStack += (AxisValue != 0) ?  AxisValue * Delta : (StartRotatingStack > 0 ? -Delta : Delta);
-
-	if (AxisValue == 0 && FMath::Abs(StartRotatingStack) <= Delta)
-	{
-		StartRotatingStack = 0.0f;
-	}
-
-	// If Axis value does not exceeds configured threshold, do nothing
-	if (FMath::Abs(StartRotatingStack) < StartRotatingThreshold)
-	{
-		bDesireToSwitch = false;
-		return;
-	}
-	else
-	{
-		//Sticky when switching target.
-		if (StartRotatingStack * AxisValue > 0)
-		{
-			StartRotatingStack = StartRotatingStack > 0 ? StartRotatingThreshold : -StartRotatingThreshold;
-		}
-		else if (StartRotatingStack * AxisValue < 0)
-		{
-			StartRotatingStack = StartRotatingStack * -1.0f;
-
-		}
-
-		bDesireToSwitch = true;
-	}
-
-
 	// If we're not locked on, do nothing
 	if (!bTargetLocked)
 	{
@@ -151,6 +121,12 @@ void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue, con
 	}
 
 	if (!LockedOnTargetActor)
+	{
+		return;
+	}
+
+	// If we're not allowed to switch target, do nothing
+	if (!ShouldSwitchTargetActor(AxisValue))
 	{
 		return;
 	}
@@ -304,6 +280,52 @@ void UTargetSystemComponent::ResetIsSwitchingTarget()
 	bDesireToSwitch = false;
 }
 
+bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
+{
+	if (AxisValue != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("TargetSystem: ShouldSwitchTargetActor() AxisValue: %f, Stack: %f, Threshold: %f || %f"), AxisValue, StartRotatingStack, StartRotatingThreshold, StickyRotationThreshold);
+	}
+
+	// Sticky feeling computation
+	if (bEnableStickyTarget)
+	{
+		StartRotatingStack += (AxisValue != 0) ?  AxisValue * AxisMultiplier : (StartRotatingStack > 0 ? -AxisMultiplier : AxisMultiplier);
+
+		if (AxisValue == 0 && FMath::Abs(StartRotatingStack) <= AxisMultiplier)
+		{
+
+			StartRotatingStack = 0.0f;
+		}
+
+		// If Axis value does not exceeds configured threshold, do nothing
+		if (FMath::Abs(StartRotatingStack) < StickyRotationThreshold)
+		{
+			bDesireToSwitch = false;
+			return false;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("TargetSystem: StartRotatingStack value exceeds -> StartRotatingStack: %f"), StartRotatingStack);
+		//Sticky when switching target.
+		if (StartRotatingStack * AxisValue > 0)
+		{
+			StartRotatingStack = StartRotatingStack > 0 ? StickyRotationThreshold : -StickyRotationThreshold;
+		}
+		else if (StartRotatingStack * AxisValue < 0)
+		{
+			StartRotatingStack = StartRotatingStack * -1.0f;
+
+		}
+
+		bDesireToSwitch = true;
+
+		return true;
+	}
+
+	// Non Sticky feeling, check Axis value exceeds threshold
+	return FMath::Abs(AxisValue) > StartRotatingThreshold;
+}
+
 void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 {
 	if (TargetToLockOn)
@@ -356,15 +378,14 @@ void UTargetSystemComponent::TargetLockOff()
 
 void UTargetSystemComponent::CreateAndAttachTargetLockedOnWidgetComponent(AActor* TargetActor)
 {
+	if (!LockedOnWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TargetSystemComponent: Cannot get LockedOnWidgetClass, please ensure it is a valid reference in the Component Properties."));
+		return;
+	}
+
 	TargetLockedOnWidgetComponent = NewObject<UWidgetComponent>(TargetActor, FName("TargetLockOn"));
-	if (LockedOnWidgetClass)
-	{
-		TargetLockedOnWidgetComponent->SetWidgetClass(LockedOnWidgetClass);
-	}
-	else
-	{
-		TargetLockedOnWidgetComponent->SetWidgetClass(UTargetSystemLockOnWidget::StaticClass());
-	}
+	TargetLockedOnWidgetComponent->SetWidgetClass(LockedOnWidgetClass);
 
 	UMeshComponent* MeshComponent = TargetActor->FindComponentByClass<UMeshComponent>();
 	USceneComponent* ParentComponent = MeshComponent && LockedOnWidgetParentSocket != NAME_None ? MeshComponent : TargetActor->GetRootComponent();

@@ -41,6 +41,8 @@ public:
     float BreakLineOfSightDelay;
 
 	// Lower this value is, easier it will be to switch new target on right or left.
+	//
+	// When using Sticky Feeling feature, it has no effect (see StickyRotationThreshold)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     float StartRotatingThreshold;
 
@@ -99,6 +101,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
 	float PitchMax = -20.0f;
 
+	// Set it to true / false whether you want a sticky feeling when switching target
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
+	bool bEnableStickyTarget;
+
+	// This value gets multiplied to the AxisValue to check against StickyRotationThreshold.
+	//
+	// Only used when Sticky Target is enabled.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
+    float AxisMultiplier;
+
+	// Lower this value is, easier it will be to switch new target on right or left.
+	//
+	// This is similar to StartRotatingThreshold, but you should set this to a much higher value.
+	//
+	// Only used when Sticky Target is enabled.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
+	float StickyRotationThreshold;
+
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActor();
@@ -114,7 +134,7 @@ public:
 	* @param Delta This value and AxisValue are multiplied before being checked against StartRotatingThreshold
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Target System")
-	void TargetActorWithAxisInput(float AxisValue, float Delta = 1.0f);
+	void TargetActorWithAxisInput(float AxisValue);
 
 	// Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
@@ -164,26 +184,44 @@ private:
     bool bDesireToSwitch;
     float StartRotatingStack;
 
+	/** Actors search / trace */
+
 	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass) const;
+	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax) const;
+
 	AActor* FindNearestTarget(TArray<AActor*> Actors) const;
+
 	bool LineTrace(FHitResult& HitResult, AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
 	bool LineTraceForActor(AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
-	FRotator GetControlRotationOnTarget(AActor* OtherActor) const;
-	void SetControlRotationOnTarget(AActor* TargetActor) const;
-	void CreateAndAttachTargetLockedOnWidgetComponent(AActor* TargetActor);
+
 	bool ShouldBreakLineOfSight() const;
 	void BreakLineOfSight();
-	void ControlRotation(bool ShouldControlRotation) const;
+
 	bool IsInViewport(AActor* TargetActor) const;
 
-	void TargetLockOn(AActor* TargetToLockOn);
-
 	float GetDistanceFromCharacter(AActor* OtherActor) const;
-	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax) const;
+
+
+	/** Actor rotation */
+
+	FRotator GetControlRotationOnTarget(AActor* OtherActor) const;
+	void SetControlRotationOnTarget(AActor* TargetActor) const;
+	void ControlRotation(bool ShouldControlRotation) const;
+
 	float GetAngleUsingCameraRotation(AActor* ActorToLook) const;
 	float GetAngleUsingCharacterRotation(AActor* ActorToLook) const;
+
 	static FRotator FindLookAtRotation(const FVector Start, const FVector Target);
+
+	/** Widget */
+
+	void CreateAndAttachTargetLockedOnWidgetComponent(AActor* TargetActor);
+
+	/** Targeting */
+
+	void TargetLockOn(AActor* TargetToLockOn);
 	void ResetIsSwitchingTarget();
+	bool ShouldSwitchTargetActor(float AxisValue);
 
 	static bool TargetIsTargetable(AActor* Actor);
 
