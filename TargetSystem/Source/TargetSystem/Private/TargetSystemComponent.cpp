@@ -238,7 +238,6 @@ float UTargetSystemComponent::GetAngleUsingCameraRotation(AActor* ActorToLook) c
 	UCameraComponent* CameraComponent = CharacterReference->FindComponentByClass<UCameraComponent>();
 	if (!CameraComponent)
 	{
-		// UE_LOG(LogTemp, Error, TEXT("TargetSystem::GetAngleUsingCameraRotation() Cannot get reference to camera component"));
 		// Fallback to CharacterRotation if no CameraComponent can be found
 		return GetAngleUsingCharacterRotation(ActorToLook);
 	}
@@ -282,11 +281,6 @@ void UTargetSystemComponent::ResetIsSwitchingTarget()
 
 bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
 {
-	if (AxisValue != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("TargetSystem: ShouldSwitchTargetActor() AxisValue: %f, Stack: %f, Threshold: %f || %f"), AxisValue, StartRotatingStack, StartRotatingThreshold, StickyRotationThreshold);
-	}
-
 	// Sticky feeling computation
 	if (bEnableStickyTarget)
 	{
@@ -305,7 +299,6 @@ bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
 			return false;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("TargetSystem: StartRotatingStack value exceeds -> StartRotatingStack: %f"), StartRotatingStack);
 		//Sticky when switching target.
 		if (StartRotatingStack * AxisValue > 0)
 		{
