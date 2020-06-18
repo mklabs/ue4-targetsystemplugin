@@ -21,9 +21,9 @@ It was first developed and tested in Blueprints following the implementation of 
 
 Download the latest `TargetSystem.zip` pre-built plugin zip from the [Release page](https://github.com/mklabs/ue4-targetsystemplugin/releases), and drop the content in your project's `Plugins` folder. Then, load up Unreal Editor, check the Plugins page and see if `TargetSystem` plugin is enabled.
 
-## Setup
+## Usage
 
-Check the [Setup and Installation wiki page](https://github.com/mklabs/ue4-targetsystemplugin/wiki/Setup-and-Installation).
+Check the [Setup wiki page](https://github.com/mklabs/ue4-targetsystemplugin/wiki/Setup) to get started, the [Configuration](https://github.com/mklabs/ue4-targetsystemplugin/wiki/Configuration) to customize the system's behaviour, or [Blueprint Functions and Events](https://github.com/mklabs/ue4-targetsystemplugin/wiki/Blueprint-Functions-and-Events) to learn more on these.
 
 ## Thanks and Credits
 
@@ -32,7 +32,6 @@ Check the [Setup and Installation wiki page](https://github.com/mklabs/ue4-targe
 - To Rayziyun on youtube (https://youtu.be/gaULDBoG_oE)
 
 - To Grzegorz Szewczyk for his awesome [Dynamic Targeting component](https://www.unrealengine.com/marketplace/dynamic-targeting)
-
 
 
 ## License
