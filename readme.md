@@ -42,6 +42,16 @@ Check the [Setup and Installation wiki page](https://github.com/mklabs/ue4-targe
 - `OnTargetLockedOff(AActor* TargetActor)`: Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 - `OnTargetLockedOn(AActor* TargetActor)`: Called when a target is locked on.
 
+## Thanks and Credits
+
+- To the people over at [Lurendium](http://www.lurendium.com) for their amazing tutorials ([Part 1](http://www.lurendium.com/target-system-similar-to-dark-souls/), [Part 2](http://www.lurendium.com/target-system-similar-dark-souls-blueprint-part-2/), [Part 3](http://www.lurendium.com/target-system-similar-to-dark-souls-blueprint-part-3-final/))
+
+- To Rayziyun on youtube (https://youtu.be/gaULDBoG_oE)
+
+- To Grzegorz Szewczyk for his awesome [Dynamic Targeting component](https://www.unrealengine.com/marketplace/dynamic-targeting)
+
+
+
 ## License
 
 MIT License.
