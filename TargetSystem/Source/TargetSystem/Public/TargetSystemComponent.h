@@ -107,9 +107,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetLockOff();
 
-	// Function to call to target a new actor.
+	/**
+	* Function to call to switch with X-Axis mouse / controller stick movement.
+	*
+	* @param AxisValue Pass in the float value of your Input Axis
+	* @param Delta This value and AxisValue are multiplied before being checked against StartRotatingThreshold
+	*/
 	UFUNCTION(BlueprintCallable, Category = "Target System")
-	void TargetActorWithAxisInput(float AxisValue);
+	void TargetActorWithAxisInput(float AxisValue, float Delta = 1.0f);
 
 	// Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
@@ -130,8 +135,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	AActor* GetLockedOnTargetActor() const;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Target System")
-	AActor* LockedOnTargetActor;
+	// Returns true / false whether the system is targeting an actor
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+    bool IsLocked() const;
 
 private:
 
@@ -144,6 +150,9 @@ private:
 	UPROPERTY()
 	UWidgetComponent* TargetLockedOnWidgetComponent;
 
+	UPROPERTY()
+	AActor* LockedOnTargetActor;
+
 	FTimerHandle LineOfSightBreakTimerHandle;
 	FTimerHandle SwitchingTargetTimerHandle;
 
@@ -152,6 +161,8 @@ private:
 	bool bTargetLocked;
 	float ClosestTargetDistance;
 
+    bool bDesireToSwitch;
+    float StartRotatingStack;
 
 	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass) const;
 	AActor* FindNearestTarget(TArray<AActor*> Actors) const;

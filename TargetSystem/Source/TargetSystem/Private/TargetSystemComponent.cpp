@@ -24,10 +24,13 @@ UTargetSystemComponent::UTargetSystemComponent()
 	bIsBreakingLineOfSight = false;
 	bShouldControlRotation = true;
 	StartRotatingThreshold = 1.5f;
+	// StartRotatingThreshold = 0.3f;
+	StartRotatingStack = 0.0f;
 	bIsSwitchingTarget = false;
 	bShouldDrawLockedOnWidget = true;
 	LockedOnWidgetParentSocket = FName("spine_03");
 	bAdjustPitchBasedOnDistanceToTarget = true;
+	bDesireToSwitch = false;
 
 	LockedOnWidgetClass = StaticLoadClass(UObject::StaticClass(), nullptr, TEXT("/TargetSystem/UI/WBP_LockOn.WBP_LockOn_C"));
 
@@ -109,13 +112,37 @@ void UTargetSystemComponent::TargetActor()
 	}
 }
 
-void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue)
+void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue, const float Delta)
 {
-	// If Axis value does not exceeds configured threshold, do nothing
-	if (FMath::Abs(AxisValue) < StartRotatingThreshold)
+	StartRotatingStack += (AxisValue != 0) ?  AxisValue * Delta : (StartRotatingStack > 0 ? -Delta : Delta);
+
+	if (AxisValue == 0 && FMath::Abs(StartRotatingStack) <= Delta)
 	{
+		StartRotatingStack = 0.0f;
+	}
+
+	// If Axis value does not exceeds configured threshold, do nothing
+	if (FMath::Abs(StartRotatingStack) < StartRotatingThreshold)
+	{
+		bDesireToSwitch = false;
 		return;
 	}
+	else
+	{
+		//Sticky when switching target.
+		if (StartRotatingStack * AxisValue > 0)
+		{
+			StartRotatingStack = StartRotatingStack > 0 ? StartRotatingThreshold : -StartRotatingThreshold;
+		}
+		else if (StartRotatingStack * AxisValue < 0)
+		{
+			StartRotatingStack = StartRotatingStack * -1.0f;
+
+		}
+
+		bDesireToSwitch = true;
+	}
+
 
 	// If we're not locked on, do nothing
 	if (!bTargetLocked)
@@ -183,22 +210,35 @@ void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue)
 
 	if (ActorToTarget)
 	{
-		bIsSwitchingTarget = true;
+		if (SwitchingTargetTimerHandle.IsValid())
+		{
+			SwitchingTargetTimerHandle.Invalidate();
+		}
+
 		TargetLockOff();
 		LockedOnTargetActor = ActorToTarget;
 		TargetLockOn(ActorToTarget);
+
 		GetWorld()->GetTimerManager().SetTimer(
 			SwitchingTargetTimerHandle,
 			this,
 			&UTargetSystemComponent::ResetIsSwitchingTarget,
-			0.5f
+			// Less sticky if still switching
+			bIsSwitchingTarget ? 0.25f : 0.5f
 		);
+
+		bIsSwitchingTarget = true;
 	}
 }
 
 AActor* UTargetSystemComponent::GetLockedOnTargetActor() const
 {
 	return LockedOnTargetActor;
+}
+
+bool UTargetSystemComponent::IsLocked() const
+{
+	return bTargetLocked && LockedOnTargetActor;
 }
 
 TArray<AActor*> UTargetSystemComponent::FindTargetsInRange(TArray<AActor*> ActorsToLook, const float RangeMin, const float RangeMax) const
@@ -261,6 +301,7 @@ FRotator UTargetSystemComponent::FindLookAtRotation(const FVector Start, const F
 void UTargetSystemComponent::ResetIsSwitchingTarget()
 {
 	bIsSwitchingTarget = false;
+	bDesireToSwitch = false;
 }
 
 void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
