@@ -4,6 +4,10 @@ An UE4 plugin written entirely in C++ which adds support for a simple Dark Souls
 
 It was first developed and tested in Blueprints following the implementation of the people over at [Lurendium](http://www.lurendium.com), with this tutorial series: [Part 1](http://www.lurendium.com/target-system-similar-to-dark-souls/), [Part 2](http://www.lurendium.com/target-system-similar-dark-souls-blueprint-part-2/), [Part 3](http://www.lurendium.com/target-system-similar-to-dark-souls-blueprint-part-3-final/), and then converted and rewritten into a C++ module and plugin.
 
+Get it from the [marketplace](https://www.unrealengine.com/marketplace/en-US/product/target-system-component-plugin) or download the latest `TargetSystem.zip` pre-built plugin zip from the [Release page](https://github.com/mklabs/ue4-targetsystemplugin/releases), and drop the content in your project's `Plugins` folder.
+
+Then, load up Unreal Editor, check the Plugins page and see if `TargetSystem` plugin is enabled.
+
 ## Features
 
 - Customizable with a set of options that can be overridden in Blueprints.
@@ -16,10 +20,6 @@ It was first developed and tested in Blueprints following the implementation of 
 - Switch to new target with axis input (on mouse / gamepad axis movement).
 - Two Blueprint implementable events on component on Target Locked On and Off.
 - Adds a Pitch Offset at close range, the greater it is the closer the player gets to the target.
-
-## Installation
-
-Download the latest `TargetSystem.zip` pre-built plugin zip from the [Release page](https://github.com/mklabs/ue4-targetsystemplugin/releases), and drop the content in your project's `Plugins` folder. Then, load up Unreal Editor, check the Plugins page and see if `TargetSystem` plugin is enabled.
 
 ## Usage
 
