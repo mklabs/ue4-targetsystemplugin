@@ -1,13 +1,17 @@
 // Copyright 2018-2019 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystemComponent.h"
+
 #include "TargetSystemTargetableInterface.h"
-#include "Engine/World.h"
-#include "Engine/Public/TimerManager.h"
-#include "GameFramework/CharacterMovementComponent.h"
+
+#include "Components/WidgetComponent.h"
+#include "EngineUtils.h"
 #include "Engine/Classes/Camera/CameraComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
-#include "EngineUtils.h"
+#include "Engine/Public/TimerManager.h"
+#include "Engine/World.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerController.h"
 
 // Sets default values for this component's properties
 UTargetSystemComponent::UTargetSystemComponent()
@@ -22,7 +26,8 @@ UTargetSystemComponent::UTargetSystemComponent()
 	BreakLineOfSightDelay = 2.0f;
 	bIsBreakingLineOfSight = false;
 	bShouldControlRotation = true;
-	StartRotatingThreshold = 1.5f;
+	bIgnoreLookInput = true;
+	StartRotatingThreshold = 0.85f;
 	StartRotatingStack = 0.0f;
 	bIsSwitchingTarget = false;
 	bShouldDrawLockedOnWidget = true;
@@ -33,8 +38,8 @@ UTargetSystemComponent::UTargetSystemComponent()
 	StickyRotationThreshold = 30.0f;
 
 	LockedOnWidgetClass = StaticLoadClass(UObject::StaticClass(), nullptr, TEXT("/TargetSystem/UI/WBP_LockOn.WBP_LockOn_C"));
-
 	TargetableActors = APawn::StaticClass();
+	TargetableCollisionChannel = ECollisionChannel::ECC_Pawn;
 }
 
 // Called when the game starts
@@ -207,6 +212,10 @@ void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue)
 	}
 }
 
+bool UTargetSystemComponent::GetTargetLockedStatus(){
+	return bTargetLocked;
+}
+
 AActor* UTargetSystemComponent::GetLockedOnTargetActor() const
 {
 	return LockedOnTargetActor;
@@ -323,6 +332,7 @@ void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 {
 	if (TargetToLockOn)
 	{
+
 		bTargetLocked = true;
 		if (bShouldDrawLockedOnWidget)
 		{
@@ -334,7 +344,10 @@ void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 			ControlRotation(true);
 		}
 
-		PlayerController->SetIgnoreLookInput(true);
+		if (bAdjustPitchBasedOnDistanceToTarget || bIgnoreLookInput)
+		{
+			PlayerController->SetIgnoreLookInput(true);
+		}
 
 		if (OnTargetLockedOn.IsBound())
 		{
@@ -485,7 +498,7 @@ bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, AActor* OtherActor
 		HitResult,
 		CharacterReference->GetActorLocation(),
 		OtherActor->GetActorLocation(),
-		ECollisionChannel::ECC_Pawn,
+		(ECollisionChannel) TargetableCollisionChannel,
 		Params
 	);
 }
@@ -499,8 +512,8 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor) 
 
 	// Find look at rotation
 	const FRotator LookRotation = FRotationMatrix::MakeFromX(OtherActorLocation - CharacterLocation).Rotator();
-
 	float Pitch = LookRotation.Pitch;
+	FRotator TargetRotation;
 	if (bAdjustPitchBasedOnDistanceToTarget)
 	{
 		const float DistanceToTarget = GetDistanceFromCharacter(OtherActor);
@@ -508,10 +521,19 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor) 
 		const float PitchOffset = FMath::Clamp(PitchInRange, PitchMin, PitchMax);
 
 		Pitch = Pitch + PitchOffset;
+		TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+	}
+	else
+	{
+		if (bIgnoreLookInput) {
+			TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+		} else {
+			TargetRotation = FRotator(ControlRotation.Pitch, LookRotation.Yaw, ControlRotation.Roll);
+		}
 	}
 
-	const FRotator TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
-	return FMath::RInterpTo(ControlRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 5.0f);
+	return FMath::RInterpTo( ControlRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 9.0f );
+
 }
 
 void UTargetSystemComponent::SetControlRotationOnTarget(AActor* TargetActor) const
