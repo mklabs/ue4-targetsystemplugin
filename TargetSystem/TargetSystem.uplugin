@@ -1,8 +1,8 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.25.0",
-	"EngineVersion": "4.25.0",
+	"VersionName": "1.26.0",
+	"EngineVersion": "4.26.0",
 	"FriendlyName": "TargetSystem",
 	"Description": "Dark Souls inspired Camera Lock On / Targeting system",
 	"Category": "Targeting",
