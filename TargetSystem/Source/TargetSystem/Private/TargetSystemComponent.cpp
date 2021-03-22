@@ -25,7 +25,6 @@ UTargetSystemComponent::UTargetSystemComponent()
 	LockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 0.0f);
 	BreakLineOfSightDelay = 2.0f;
 	bIsBreakingLineOfSight = false;
-	bShouldControlRotation = true;
 	bIgnoreLookInput = true;
 	StartRotatingThreshold = 0.85f;
 	StartRotatingStack = 0.0f;

@@ -39,7 +39,7 @@ public:
 	//
 	// Set it to true if you want the character to rotate around the locked on target to enable you to setup strafe animations.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-    bool bShouldControlRotation;
+    bool bShouldControlRotation = false;
 
 	// Whether to accept pitch input when bAdjustPitchBasedOnDistanceToTarget is disabled
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
