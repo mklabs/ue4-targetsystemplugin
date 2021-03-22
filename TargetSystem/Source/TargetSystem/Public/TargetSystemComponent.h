@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "Components/ActorComponent.h"
-#include "Components/WidgetComponent.h"
-#include "GameFramework/PlayerController.h"
 #include "TargetSystemComponent.generated.h"
+
+class UWidgetComponent;
+class APlayerController;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentOnTargetLockedOnOff, AActor*, TargetActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentSetRotation, AActor*, TargetActor, FRotator, ControlRotation);
@@ -28,6 +30,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     TSubclassOf<AActor> TargetableActors;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Bitmask, BitmaskEnum="ECollisionChannel"), Category = "Target System")
+ 	int32 TargetableCollisionChannel;
+
 	// Whether or not the character rotation should be controlled when Target is locked on.
 	//
 	// If true, it'll set the value of bUseControllerRotationYaw and bOrientationToMovement variables on Target locked on / off.
@@ -36,11 +41,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     bool bShouldControlRotation;
 
+	// Wheter to accept pitch input when bAdjustPitchBasedOnDistanceToTarget is disabled
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
+    bool bIgnoreLookInput;
+
 	// The amount of time to break line of sight when actor gets behind an Object.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     float BreakLineOfSightDelay;
 
-	// Lower this value is, easier it will be to switch new target on right or left.
+	// Lower this value is, easier it will be to switch new target on right or left. Must be < 1.0f if controlling with gamepad stick
 	//
 	// When using Sticky Feeling feature, it has no effect (see StickyRotationThreshold)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
@@ -135,6 +144,10 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	void TargetActorWithAxisInput(float AxisValue);
+
+	// Function to get TargetLocked private variable status
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	bool GetTargetLockedStatus();
 
 	// Called when a target is locked off, either if it is out of reach (based on MinimumDistanceToEnable) or behind an Object.
 	UPROPERTY(BlueprintAssignable, Category = "Target System")
