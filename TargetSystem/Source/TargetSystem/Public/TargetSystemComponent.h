@@ -102,7 +102,7 @@ public:
     float PitchDistanceCoefficient = -0.2f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
-    float PitchDistanceOffset = 90.0f;
+    float PitchDistanceOffset = 60.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
 	float PitchMin = -50.0f;
