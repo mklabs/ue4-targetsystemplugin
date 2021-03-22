@@ -24,7 +24,7 @@ public:
 
 	// The minimum distance to enable target locked on.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-	float MinimumDistanceToEnable;
+	float MinimumDistanceToEnable = 1200.0f;
 
 	// The AActor Subclass to search for targetable Actors.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
@@ -43,17 +43,17 @@ public:
 
 	// Whether to accept pitch input when bAdjustPitchBasedOnDistanceToTarget is disabled
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-    bool bIgnoreLookInput;
+    bool bIgnoreLookInput = true;
 
 	// The amount of time to break line of sight when actor gets behind an Object.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-    float BreakLineOfSightDelay;
+    float BreakLineOfSightDelay = 2.0f;
 
 	// Lower this value is, easier it will be to switch new target on right or left. Must be < 1.0f if controlling with gamepad stick
 	//
 	// When using Sticky Feeling feature, it has no effect (see StickyRotationThreshold)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
-    float StartRotatingThreshold;
+    float StartRotatingThreshold = 0.85f;
 
 	// Whether or not the Target LockOn Widget indicator should be drawn and attached automatically.
 	//
@@ -61,7 +61,7 @@ public:
 	//
 	// OnTargetLockedOn and OnTargetLockedOff events can be used for this.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
-	bool bShouldDrawLockedOnWidget;
+	bool bShouldDrawLockedOnWidget = true;
 
 	// The Widget Class to use when locked on Target. If not defined, will fallback to a Text-rendered
 	// widget with a single O character.
@@ -70,7 +70,7 @@ public:
 
 	// The Widget Draw Size for the Widget class to use when locked on Target.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
-    float LockedOnWidgetDrawSize;
+    float LockedOnWidgetDrawSize = 32.0f;
 
 	// The Socket name to attach the LockedOn Widget.
 	//
@@ -79,11 +79,11 @@ public:
 	//
 	// Set it to None to attach the Widget Component to the Root Component instead of the Mesh.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
-    FName LockedOnWidgetParentSocket;
+    FName LockedOnWidgetParentSocket = FName("spine_03");
 
 	// The Relative Location to apply on Target LockedOn Widget when attached to a target.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
-    FVector LockedOnWidgetRelativeLocation;
+    FVector LockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 0.0f);
 
 	// Setting this to true will tell the Target System to adjust the Pitch Offset (the Y axis) when locked on,
 	// depending on the distance to the target actor.
@@ -96,7 +96,7 @@ public:
 	//
 	// Then Clamped by PitchMin / PitchMax
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
-	bool bAdjustPitchBasedOnDistanceToTarget;
+	bool bAdjustPitchBasedOnDistanceToTarget = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset")
     float PitchDistanceCoefficient = -0.2f;
@@ -112,13 +112,13 @@ public:
 
 	// Set it to true / false whether you want a sticky feeling when switching target
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
-	bool bEnableStickyTarget;
+	bool bEnableStickyTarget = false;
 
 	// This value gets multiplied to the AxisValue to check against StickyRotationThreshold.
 	//
 	// Only used when Sticky Target is enabled.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
-    float AxisMultiplier;
+    float AxisMultiplier = 1.0f;
 
 	// Lower this value is, easier it will be to switch new target on right or left.
 	//
@@ -126,7 +126,7 @@ public:
 	//
 	// Only used when Sticky Target is enabled.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Sticky Feeling on Target Switch")
-	float StickyRotationThreshold;
+	float StickyRotationThreshold = 30.0f;
 
 	// Function to call to target a new actor.
 	UFUNCTION(BlueprintCallable, Category = "Target System")
@@ -189,13 +189,13 @@ private:
 	FTimerHandle LineOfSightBreakTimerHandle;
 	FTimerHandle SwitchingTargetTimerHandle;
 
-	bool bIsBreakingLineOfSight;
-	bool bIsSwitchingTarget;
-	bool bTargetLocked;
-	float ClosestTargetDistance;
+	bool bIsBreakingLineOfSight = false;
+	bool bIsSwitchingTarget = false;
+	bool bTargetLocked = false;
+	float ClosestTargetDistance = 0.0f;
 
-    bool bDesireToSwitch;
-    float StartRotatingStack;
+    bool bDesireToSwitch = false;
+    float StartRotatingStack = 0.0f;
 
 	/** Actors search / trace */
 

@@ -18,24 +18,6 @@ UTargetSystemComponent::UTargetSystemComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	MinimumDistanceToEnable = 1200.0f;
-	ClosestTargetDistance = 0.0f;
-	bTargetLocked = false;
-	LockedOnWidgetDrawSize = 32.0f;
-	LockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 0.0f);
-	BreakLineOfSightDelay = 2.0f;
-	bIsBreakingLineOfSight = false;
-	bIgnoreLookInput = true;
-	StartRotatingThreshold = 0.85f;
-	StartRotatingStack = 0.0f;
-	bIsSwitchingTarget = false;
-	bShouldDrawLockedOnWidget = true;
-	LockedOnWidgetParentSocket = FName("spine_03");
-	bAdjustPitchBasedOnDistanceToTarget = true;
-	bDesireToSwitch = false;
-	AxisMultiplier = 1.0f;
-	StickyRotationThreshold = 30.0f;
-
 	LockedOnWidgetClass = StaticLoadClass(UObject::StaticClass(), nullptr, TEXT("/TargetSystem/UI/WBP_LockOn.WBP_LockOn_C"));
 	TargetableActors = APawn::StaticClass();
 	TargetableCollisionChannel = ECollisionChannel::ECC_Pawn;
