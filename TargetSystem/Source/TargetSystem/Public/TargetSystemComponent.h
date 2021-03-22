@@ -41,7 +41,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     bool bShouldControlRotation;
 
-	// Wheter to accept pitch input when bAdjustPitchBasedOnDistanceToTarget is disabled
+	// Whether to accept pitch input when bAdjustPitchBasedOnDistanceToTarget is disabled
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System")
     bool bIgnoreLookInput;
 

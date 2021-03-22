@@ -45,6 +45,9 @@ UTargetSystemComponent::UTargetSystemComponent()
 // Called when the game starts
 void UTargetSystemComponent::BeginPlay()
 {
+
+	// UE_LOG(LogTemp, Log, TEXT("TargetSystemComponent: 4.26.0"));
+
 	Super::BeginPlay();
 	CharacterReference = GetOwner();
 	if (!CharacterReference)
