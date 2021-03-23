@@ -7,6 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "TargetSystemComponent.generated.h"
 
+class UUserWidget;
 class UWidgetComponent;
 class APlayerController;
 
