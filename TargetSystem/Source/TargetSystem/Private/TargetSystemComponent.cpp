@@ -1,11 +1,10 @@
-// Copyright 2018-2019 Mickael Daniel. All Rights Reserved.
+// Copyright 2018-2021 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystemComponent.h"
-
 #include "TargetSystemTargetableInterface.h"
-
 #include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
+#include "TargetSystemLog.h"
 #include "Engine/Classes/Camera/CameraComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/Public/TimerManager.h"
@@ -26,61 +25,62 @@ UTargetSystemComponent::UTargetSystemComponent()
 // Called when the game starts
 void UTargetSystemComponent::BeginPlay()
 {
-
-	// UE_LOG(LogTemp, Log, TEXT("TargetSystemComponent: 4.26.0"));
-
 	Super::BeginPlay();
-	CharacterReference = GetOwner();
-	if (!CharacterReference)
+	OwnerActor = GetOwner();
+	if (!OwnerActor)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get Owner reference ..."), *GetName());
+		TS_LOG(Error, TEXT("[%s] TargetSystemComponent: Cannot get Owner reference ..."), *GetName());
 		return;
 	}
 
-	PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PlayerController)
+	OwnerPawn = Cast<APawn>(OwnerActor);
+	if (!ensure(OwnerPawn))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get PlayerController reference ..."), *CharacterReference->GetName());
+		TS_LOG(Error, TEXT("[%s] TargetSystemComponent: Component is meant to be added to Pawn only ..."), *GetName());
 		return;
 	}
+
+	SetupLocalPlayerController();
 }
 
-void UTargetSystemComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
+void UTargetSystemComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (bTargetLocked && LockedOnTargetActor)
+	if (!bTargetLocked || !LockedOnTargetActor)
 	{
-		if (!TargetIsTargetable(LockedOnTargetActor))
+		return;
+	}
+
+	if (!TargetIsTargetable(LockedOnTargetActor))
+	{
+		TargetLockOff();
+		return;
+	}
+
+	SetControlRotationOnTarget(LockedOnTargetActor);
+
+	// Target Locked Off based on Distance
+	if (GetDistanceFromCharacter(LockedOnTargetActor) > MinimumDistanceToEnable)
+	{
+		TargetLockOff();
+	}
+
+	if (ShouldBreakLineOfSight() && !bIsBreakingLineOfSight)
+	{
+		if (BreakLineOfSightDelay <= 0)
 		{
 			TargetLockOff();
-			return;
 		}
-
-		SetControlRotationOnTarget(LockedOnTargetActor);
-
-		// Target Locked Off based on Distance
-		if (GetDistanceFromCharacter(LockedOnTargetActor) > MinimumDistanceToEnable)
+		else
 		{
-			TargetLockOff();
-		}
-
-		if (ShouldBreakLineOfSight() && !bIsBreakingLineOfSight)
-		{
-			if (BreakLineOfSightDelay <= 0)
-			{
-				TargetLockOff();
-			}
-			else
-			{
-				bIsBreakingLineOfSight = true;
-				GetWorld()->GetTimerManager().SetTimer(
-					LineOfSightBreakTimerHandle,
-					this,
-					&UTargetSystemComponent::BreakLineOfSight,
-					BreakLineOfSightDelay
-				);
-			}
+			bIsBreakingLineOfSight = true;
+			GetWorld()->GetTimerManager().SetTimer(
+				LineOfSightBreakTimerHandle,
+				this,
+				&UTargetSystemComponent::BreakLineOfSight,
+				BreakLineOfSightDelay
+			);
 		}
 	}
 }
@@ -196,7 +196,8 @@ void UTargetSystemComponent::TargetActorWithAxisInput(const float AxisValue)
 	}
 }
 
-bool UTargetSystemComponent::GetTargetLockedStatus(){
+bool UTargetSystemComponent::GetTargetLockedStatus()
+{
 	return bTargetLocked;
 }
 
@@ -226,9 +227,9 @@ TArray<AActor*> UTargetSystemComponent::FindTargetsInRange(TArray<AActor*> Actor
 	return ActorsInRange;
 }
 
-float UTargetSystemComponent::GetAngleUsingCameraRotation(AActor* ActorToLook) const
+float UTargetSystemComponent::GetAngleUsingCameraRotation(const AActor* ActorToLook) const
 {
-	UCameraComponent* CameraComponent = CharacterReference->FindComponentByClass<UCameraComponent>();
+	UCameraComponent* CameraComponent = OwnerActor->FindComponentByClass<UCameraComponent>();
 	if (!CameraComponent)
 	{
 		// Fallback to CharacterRotation if no CameraComponent can be found
@@ -247,10 +248,10 @@ float UTargetSystemComponent::GetAngleUsingCameraRotation(AActor* ActorToLook) c
 	return YawAngle;
 }
 
-float UTargetSystemComponent::GetAngleUsingCharacterRotation(AActor* ActorToLook) const
+float UTargetSystemComponent::GetAngleUsingCharacterRotation(const AActor* ActorToLook) const
 {
-	const FRotator CharacterRotation = CharacterReference->GetActorRotation();
-	const FRotator LookAtRotation = FindLookAtRotation(CharacterReference->GetActorLocation(), ActorToLook->GetActorLocation());
+	const FRotator CharacterRotation = OwnerActor->GetActorRotation();
+	const FRotator LookAtRotation = FindLookAtRotation(OwnerActor->GetActorLocation(), ActorToLook->GetActorLocation());
 
 	float YawAngle = CharacterRotation.Yaw - LookAtRotation.Yaw;
 	if (YawAngle < 0)
@@ -277,11 +278,10 @@ bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
 	// Sticky feeling computation
 	if (bEnableStickyTarget)
 	{
-		StartRotatingStack += (AxisValue != 0) ?  AxisValue * AxisMultiplier : (StartRotatingStack > 0 ? -AxisMultiplier : AxisMultiplier);
+		StartRotatingStack += (AxisValue != 0) ? AxisValue * AxisMultiplier : (StartRotatingStack > 0 ? -AxisMultiplier : AxisMultiplier);
 
 		if (AxisValue == 0 && FMath::Abs(StartRotatingStack) <= AxisMultiplier)
 		{
-
 			StartRotatingStack = 0.0f;
 		}
 
@@ -300,7 +300,6 @@ bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
 		else if (StartRotatingStack * AxisValue < 0)
 		{
 			StartRotatingStack = StartRotatingStack * -1.0f;
-
 		}
 
 		bDesireToSwitch = true;
@@ -314,34 +313,44 @@ bool UTargetSystemComponent::ShouldSwitchTargetActor(const float AxisValue)
 
 void UTargetSystemComponent::TargetLockOn(AActor* TargetToLockOn)
 {
-	if (TargetToLockOn)
+	if (!IsValid(TargetToLockOn))
 	{
+		return;
+	}
 
-		bTargetLocked = true;
-		if (bShouldDrawLockedOnWidget)
-		{
-			CreateAndAttachTargetLockedOnWidgetComponent(TargetToLockOn);
-		}
+	// Recast PlayerController in case it wasn't already setup on Begin Play (local split screen)
+	SetupLocalPlayerController();
 
-		if (bShouldControlRotation)
-		{
-			ControlRotation(true);
-		}
+	bTargetLocked = true;
+	if (bShouldDrawLockedOnWidget)
+	{
+		CreateAndAttachTargetLockedOnWidgetComponent(TargetToLockOn);
+	}
 
-		if (bAdjustPitchBasedOnDistanceToTarget || bIgnoreLookInput)
-		{
-			PlayerController->SetIgnoreLookInput(true);
-		}
+	if (bShouldControlRotation)
+	{
+		ControlRotation(true);
+	}
 
-		if (OnTargetLockedOn.IsBound())
+	if (bAdjustPitchBasedOnDistanceToTarget || bIgnoreLookInput)
+	{
+		if (IsValid(OwnerPlayerController))
 		{
-			OnTargetLockedOn.Broadcast(TargetToLockOn);
+			OwnerPlayerController->SetIgnoreLookInput(true);
 		}
+	}
+
+	if (OnTargetLockedOn.IsBound())
+	{
+		OnTargetLockedOn.Broadcast(TargetToLockOn);
 	}
 }
 
 void UTargetSystemComponent::TargetLockOff()
 {
+	// Recast PlayerController in case it wasn't already setup on Begin Play (local split screen)
+	SetupLocalPlayerController();
+
 	bTargetLocked = false;
 	if (TargetLockedOnWidgetComponent)
 	{
@@ -355,7 +364,10 @@ void UTargetSystemComponent::TargetLockOff()
 			ControlRotation(false);
 		}
 
-		PlayerController->ResetIgnoreLookInput();
+		if (IsValid(OwnerPlayerController))
+		{
+			OwnerPlayerController->ResetIgnoreLookInput();
+		}
 
 		if (OnTargetLockedOff.IsBound())
 		{
@@ -370,15 +382,20 @@ void UTargetSystemComponent::CreateAndAttachTargetLockedOnWidgetComponent(AActor
 {
 	if (!LockedOnWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TargetSystemComponent: Cannot get LockedOnWidgetClass, please ensure it is a valid reference in the Component Properties."));
+		TS_LOG(Error, TEXT("TargetSystemComponent: Cannot get LockedOnWidgetClass, please ensure it is a valid reference in the Component Properties."));
 		return;
 	}
 
-	TargetLockedOnWidgetComponent = NewObject<UWidgetComponent>(TargetActor, MakeUniqueObjectName( TargetActor, UWidgetComponent::StaticClass(), FName("TargetLockOn") ) );
+	TargetLockedOnWidgetComponent = NewObject<UWidgetComponent>(TargetActor, MakeUniqueObjectName(TargetActor, UWidgetComponent::StaticClass(), FName("TargetLockOn")));
 	TargetLockedOnWidgetComponent->SetWidgetClass(LockedOnWidgetClass);
 
 	UMeshComponent* MeshComponent = TargetActor->FindComponentByClass<UMeshComponent>();
 	USceneComponent* ParentComponent = MeshComponent && LockedOnWidgetParentSocket != NAME_None ? MeshComponent : TargetActor->GetRootComponent();
+
+	if (IsValid(OwnerPlayerController))
+	{
+		TargetLockedOnWidgetComponent->SetOwnerPlayer(OwnerPlayerController->GetLocalPlayer());
+	}
 
 	TargetLockedOnWidgetComponent->ComponentTags.Add(FName("TargetSystem.LockOnWidget"));
 	TargetLockedOnWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
@@ -405,7 +422,7 @@ TArray<AActor*> UTargetSystemComponent::GetAllActorsOfClass(const TSubclassOf<AA
 	return Actors;
 }
 
-bool UTargetSystemComponent::TargetIsTargetable(AActor* Actor)
+bool UTargetSystemComponent::TargetIsTargetable(const AActor* Actor)
 {
 	const bool bIsImplemented = Actor->GetClass()->ImplementsInterface(UTargetSystemTargetableInterface::StaticClass());
 	if (bIsImplemented)
@@ -414,6 +431,17 @@ bool UTargetSystemComponent::TargetIsTargetable(AActor* Actor)
 	}
 
 	return true;
+}
+
+void UTargetSystemComponent::SetupLocalPlayerController()
+{
+	if (!IsValid(OwnerPawn))
+	{
+		TS_LOG(Error, TEXT("[%s] TargetSystemComponent: Component is meant to be added to Pawn only ..."), *GetName());
+		return;
+	}
+
+	OwnerPlayerController = Cast<APlayerController>(OwnerPawn->GetController());
 }
 
 AActor* UTargetSystemComponent::FindNearestTarget(TArray<AActor*> Actors) const
@@ -468,30 +496,36 @@ bool UTargetSystemComponent::LineTraceForActor(AActor* OtherActor, const TArray<
 	return false;
 }
 
-bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, AActor* OtherActor, const TArray<AActor*> ActorsToIgnore) const
+bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, const AActor* OtherActor, const TArray<AActor*> ActorsToIgnore) const
 {
 	FCollisionQueryParams Params = FCollisionQueryParams(FName("LineTraceSingle"));
 
 	TArray<AActor*> IgnoredActors;
-	IgnoredActors.Init(CharacterReference, 1);
+	IgnoredActors.Init(OwnerActor, 1);
 	IgnoredActors += ActorsToIgnore;
 
 	Params.AddIgnoredActors(IgnoredActors);
 
 	return GetWorld()->LineTraceSingleByChannel(
 		HitResult,
-		CharacterReference->GetActorLocation(),
+		OwnerActor->GetActorLocation(),
 		OtherActor->GetActorLocation(),
-		(ECollisionChannel) TargetableCollisionChannel,
+		TargetableCollisionChannel,
 		Params
 	);
 }
 
-FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor) const
+FRotator UTargetSystemComponent::GetControlRotationOnTarget(const AActor* OtherActor) const
 {
-	const FRotator ControlRotation = PlayerController->GetControlRotation();
+	if (!IsValid(OwnerPlayerController))
+	{
+		TS_LOG(Warning, TEXT("UTargetSystemComponent::GetControlRotationOnTarget - OwnerPlayerController is not valid ..."))
+		return FRotator::ZeroRotator;
+	}
 
-	const FVector CharacterLocation = CharacterReference->GetActorLocation();
+	const FRotator ControlRotation = OwnerPlayerController->GetControlRotation();
+
+	const FVector CharacterLocation = OwnerActor->GetActorLocation();
 	const FVector OtherActorLocation = OtherActor->GetActorLocation();
 
 	// Find look at rotation
@@ -509,38 +543,40 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(AActor* OtherActor) 
 	}
 	else
 	{
-		if (bIgnoreLookInput) {
+		if (bIgnoreLookInput)
+		{
 			TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
-		} else {
+		}
+		else
+		{
 			TargetRotation = FRotator(ControlRotation.Pitch, LookRotation.Yaw, ControlRotation.Roll);
 		}
 	}
 
-	return FMath::RInterpTo( ControlRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 9.0f );
-
+	return FMath::RInterpTo(ControlRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 9.0f);
 }
 
 void UTargetSystemComponent::SetControlRotationOnTarget(AActor* TargetActor) const
 {
-	if (!PlayerController)
+	if (!IsValid(OwnerPlayerController))
 	{
 		return;
 	}
 
 	const FRotator ControlRotation = GetControlRotationOnTarget(TargetActor);
-    if (OnTargetSetRotation.IsBound())
-    {
-        OnTargetSetRotation.Broadcast(TargetActor, ControlRotation);
-    }
-    else
-    {
-        PlayerController->SetControlRotation(ControlRotation);
-    }
+	if (OnTargetSetRotation.IsBound())
+	{
+		OnTargetSetRotation.Broadcast(TargetActor, ControlRotation);
+	}
+	else
+	{
+		OwnerPlayerController->SetControlRotation(ControlRotation);
+	}
 }
 
-float UTargetSystemComponent::GetDistanceFromCharacter(AActor* OtherActor) const
+float UTargetSystemComponent::GetDistanceFromCharacter(const AActor* OtherActor) const
 {
-	return CharacterReference->GetDistanceTo(OtherActor);
+	return OwnerActor->GetDistanceTo(OtherActor);
 }
 
 bool UTargetSystemComponent::ShouldBreakLineOfSight() const
@@ -574,28 +610,29 @@ void UTargetSystemComponent::BreakLineOfSight()
 
 void UTargetSystemComponent::ControlRotation(const bool ShouldControlRotation) const
 {
-	APawn* Pawn = Cast<APawn>(CharacterReference);
-	if (Pawn)
+	if (!IsValid(OwnerPawn))
 	{
-		Pawn->bUseControllerRotationYaw = ShouldControlRotation;
+		return;
 	}
 
-	UCharacterMovementComponent* CharacterMovementComponent = CharacterReference->FindComponentByClass<UCharacterMovementComponent>();
+	OwnerPawn->bUseControllerRotationYaw = ShouldControlRotation;
+
+	UCharacterMovementComponent* CharacterMovementComponent = OwnerPawn->FindComponentByClass<UCharacterMovementComponent>();
 	if (CharacterMovementComponent)
 	{
 		CharacterMovementComponent->bOrientRotationToMovement = !ShouldControlRotation;
 	}
 }
 
-bool UTargetSystemComponent::IsInViewport(AActor* TargetActor) const
+bool UTargetSystemComponent::IsInViewport(const AActor* TargetActor) const
 {
-	if (!PlayerController)
+	if (!IsValid(OwnerPlayerController))
 	{
 		return true;
 	}
 
 	FVector2D ScreenLocation;
-	PlayerController->ProjectWorldLocationToScreen(TargetActor->GetActorLocation(), ScreenLocation);
+	OwnerPlayerController->ProjectWorldLocationToScreen(TargetActor->GetActorLocation(), ScreenLocation);
 
 	FVector2D ViewportSize;
 	GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);

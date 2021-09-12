@@ -1,14 +1,14 @@
-// Copyright 2018-2019 Mickael Daniel. All Rights Reserved.
+// Copyright 2018-2021 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystem.h"
+#include "TargetSystemLog.h"
 
 #define LOCTEXT_NAMESPACE "FTargetSystemModule"
 
 void FTargetSystemModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	UE_LOG(LogTemp, Warning, TEXT("Target System Plugin Loaded"));
-
+	TS_LOG(Log, TEXT("Target System Plugin Loaded 1.27.0"));
 }
 
 void FTargetSystemModule::ShutdownModule()
@@ -18,5 +18,5 @@ void FTargetSystemModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FTargetSystemModule, TargetSystem)
