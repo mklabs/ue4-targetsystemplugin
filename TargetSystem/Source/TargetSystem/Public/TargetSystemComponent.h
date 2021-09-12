@@ -177,6 +177,9 @@ private:
 	AActor* OwnerActor;
 
 	UPROPERTY()
+	APawn* OwnerPawn;
+
+	UPROPERTY()
 	APlayerController* OwnerPlayerController;
 
 	UPROPERTY()
@@ -196,7 +199,7 @@ private:
 	bool bDesireToSwitch = false;
 	float StartRotatingStack = 0.0f;
 
-	/** Actors search / trace */
+	//~ Actors search / trace
 
 	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass) const;
 	TArray<AActor*> FindTargetsInRange(TArray<AActor*> ActorsToLook, float RangeMin, float RangeMax) const;
@@ -214,9 +217,9 @@ private:
 	float GetDistanceFromCharacter(const AActor* OtherActor) const;
 
 
-	/** Actor rotation */
+	//~ Actor rotation
 
-	FRotator GetControlRotationOnTarget(AActor* OtherActor) const;
+	FRotator GetControlRotationOnTarget(const AActor* OtherActor) const;
 	void SetControlRotationOnTarget(AActor* TargetActor) const;
 	void ControlRotation(bool ShouldControlRotation) const;
 
@@ -225,17 +228,24 @@ private:
 
 	static FRotator FindLookAtRotation(const FVector Start, const FVector Target);
 
-	/** Widget */
+	//~ Widget
 
 	void CreateAndAttachTargetLockedOnWidgetComponent(AActor* TargetActor);
 
-	/** Targeting */
+	//~ Targeting
 
 	void TargetLockOn(AActor* TargetToLockOn);
 	void ResetIsSwitchingTarget();
 	bool ShouldSwitchTargetActor(float AxisValue);
 
 	static bool TargetIsTargetable(const AActor* Actor);
+
+	/**
+	 *  Sets up cached Owner PlayerController from Owner Pawn.
+	 *
+	 *  For local split screen, Pawn's Controller may not have been setup already when this component begins play.
+	 */
+	 void SetupLocalPlayerController();
 
 protected:
 	// Called when the game starts
