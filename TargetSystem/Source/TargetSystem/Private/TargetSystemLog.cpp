@@ -2,6 +2,4 @@
 
 #include "TargetSystemLog.h"
 
-// DEFINE_LOG_CATEGORY(LogTargetSystem);
-
 DEFINE_LOG_CATEGORY(LogTargetSystem);

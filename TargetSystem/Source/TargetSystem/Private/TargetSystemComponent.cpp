@@ -1,11 +1,10 @@
 // Copyright 2018-2021 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystemComponent.h"
-
 #include "TargetSystemTargetableInterface.h"
-
 #include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
+#include "TargetSystemLog.h"
 #include "Engine/Classes/Camera/CameraComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/Public/TimerManager.h"
@@ -27,20 +26,20 @@ UTargetSystemComponent::UTargetSystemComponent()
 void UTargetSystemComponent::BeginPlay()
 {
 
-	// UE_LOG(LogTemp, Log, TEXT("TargetSystemComponent: 4.26.0"));
+	// TS_LOG(Log, TEXT("TargetSystemComponent: 4.26.0"));
 
 	Super::BeginPlay();
 	CharacterReference = GetOwner();
 	if (!CharacterReference)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get Owner reference ..."), *GetName());
+		TS_LOG(Error, TEXT("[%s] TargetSystemComponent: Cannot get Owner reference ..."), *GetName());
 		return;
 	}
 
 	PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] TargetSystemComponent: Cannot get PlayerController reference ..."), *CharacterReference->GetName());
+		TS_LOG(Error, TEXT("[%s] TargetSystemComponent: Cannot get PlayerController reference ..."), *CharacterReference->GetName());
 		return;
 	}
 }
@@ -370,7 +369,7 @@ void UTargetSystemComponent::CreateAndAttachTargetLockedOnWidgetComponent(AActor
 {
 	if (!LockedOnWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("TargetSystemComponent: Cannot get LockedOnWidgetClass, please ensure it is a valid reference in the Component Properties."));
+		TS_LOG(Error, TEXT("TargetSystemComponent: Cannot get LockedOnWidgetClass, please ensure it is a valid reference in the Component Properties."));
 		return;
 	}
 
