@@ -1,0 +1,59 @@
+name: package-plugin-workflow
+
+on: workflow_dispatch
+
+jobs:
+  package-plugin-job:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        unreal: ['4.27', '5.0.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Free disk space
+        if: ${{ steps.exists.outputs.value == 0 }}
+        run: |
+          # time df -h
+          sudo time swapoff -a
+          sudo time rm -f /swapfile
+          sudo time rm -rf /usr/local/lib/android
+          sudo time rm -rf /usr/share/dotnet
+          sudo time rm -rf /usr/share/swift
+          sudo time rm -rf /usr/local/.ghcup
+          sudo time rm -rf /usr/local/lib/node_modules
+          sudo time rm -rf /usr/lib/google-cloud-sdk
+          sudo time rm -rf /opt/pipx
+          sudo time rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo time apt-get clean
+          sudo time rm -rf /var/lib/apt/lists/*
+          # time docker rmi $(docker image ls -aq)
+          # time du --max-depth=3 --threshold=100M -h /usr /opt /var 2>/dev/null | sort -hr
+          df -h
+
+      - name: Run Docker container
+        run: |
+          echo ${{ secrets.DOCKER_TOKEN }} | docker login ghcr.io -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker run -td --name unreal --user root \
+            -v ${{ github.workspace }}:/ue4-targetsystemplugin \
+            --workdir /ue4-targetsystemplugin \
+            ghcr.io/epicgames/unreal-engine:dev-slim-${{ matrix.unreal }}
+
+      - name: Installing Linux Dependencies
+        run: |
+          docker exec unreal sudo apt-get update
+          docker exec unreal pip3 install --upgrade pip
+
+      - name: Installing UE CLI
+        run:
+          docker exec unreal pip3 install ue4cli
+
+      - name: Configuring UE CLI
+        run:
+          docker exec unreal ue4 setroot /home/ue4/UnrealEngine
+
+      - name: Package plugin
+        run: docker exec unreal ue4 package
