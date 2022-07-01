@@ -8,8 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        unreal: ['4.27']
-        # unreal: ['4.27', '5.0.2']
+        unreal: ['4.27', '5.0.2']
 
     steps:
       - name: Checkout
