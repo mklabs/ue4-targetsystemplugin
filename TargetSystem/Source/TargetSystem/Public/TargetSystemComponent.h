@@ -86,6 +86,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Widget")
 	FVector LockedOnWidgetRelativeLocation = FVector(0.0f, 0.0f, 0.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset using Curve")
+	bool bAdjustPitchBasedOnDistanceToTargetUsingCurve = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target System|Pitch Offset using Curve")
+	UCurveFloat* PitchOffsetCurve = nullptr;
+	
 	// Setting this to true will tell the Target System to adjust the Pitch Offset (the Y axis) when locked on,
 	// depending on the distance to the target actor.
 	//

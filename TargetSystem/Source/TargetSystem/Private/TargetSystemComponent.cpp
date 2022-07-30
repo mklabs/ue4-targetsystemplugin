@@ -532,7 +532,14 @@ FRotator UTargetSystemComponent::GetControlRotationOnTarget(const AActor* OtherA
 	const FRotator LookRotation = FRotationMatrix::MakeFromX(OtherActorLocation - CharacterLocation).Rotator();
 	float Pitch = LookRotation.Pitch;
 	FRotator TargetRotation;
-	if (bAdjustPitchBasedOnDistanceToTarget)
+	if (bAdjustPitchBasedOnDistanceToTargetUsingCurve)
+	{
+		const float Distance = GetDistanceFromCharacter(OtherActor);
+		const float CurveValue = PitchOffsetCurve->GetFloatValue(Distance);
+		Pitch += CurveValue;
+		TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+	}
+	else if (bAdjustPitchBasedOnDistanceToTarget)
 	{
 		const float DistanceToTarget = GetDistanceFromCharacter(OtherActor);
 		const float PitchInRange = (DistanceToTarget * PitchDistanceCoefficient + PitchDistanceOffset) * -1.0f;
