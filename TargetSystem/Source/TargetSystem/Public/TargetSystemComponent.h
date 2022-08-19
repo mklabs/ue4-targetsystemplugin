@@ -177,6 +177,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Target System")
 	bool IsLocked() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	void ControlRotation(bool ShouldControlRotation);
+
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	FRotator GetTargetRotation() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Target System")
+	FRotator GetControlRotationOnTarget(const AActor* OtherActor) const;
+
 private:
 	UPROPERTY()
 	AActor* OwnerActor;
@@ -204,6 +213,8 @@ private:
 	bool bDesireToSwitch = false;
 	float StartRotatingStack = 0.0f;
 
+	bool bIsControllingRotation = true;
+
 	//~ Actors search / trace
 
 	TArray<AActor*> GetAllActorsOfClass(TSubclassOf<AActor> ActorClass) const;
@@ -224,9 +235,7 @@ private:
 
 	//~ Actor rotation
 
-	FRotator GetControlRotationOnTarget(const AActor* OtherActor) const;
 	void SetControlRotationOnTarget(AActor* TargetActor) const;
-	void ControlRotation(bool ShouldControlRotation) const;
 
 	float GetAngleUsingCameraRotation(const AActor* ActorToLook) const;
 	float GetAngleUsingCharacterRotation(const AActor* ActorToLook) const;

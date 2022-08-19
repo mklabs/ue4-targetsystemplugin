@@ -58,7 +58,10 @@ void UTargetSystemComponent::TickComponent(const float DeltaTime, const ELevelTi
 		return;
 	}
 
-	SetControlRotationOnTarget(LockedOnTargetActor);
+	if (bIsControllingRotation)
+	{
+		SetControlRotationOnTarget(LockedOnTargetActor);
+	}
 
 	// Target Locked Off based on Distance
 	if (GetDistanceFromCharacter(LockedOnTargetActor) > MinimumDistanceToEnable)
@@ -615,13 +618,14 @@ void UTargetSystemComponent::BreakLineOfSight()
 	}
 }
 
-void UTargetSystemComponent::ControlRotation(const bool ShouldControlRotation) const
+void UTargetSystemComponent::ControlRotation(const bool ShouldControlRotation)
 {
 	if (!IsValid(OwnerPawn))
 	{
 		return;
 	}
 
+	bIsControllingRotation = ShouldControlRotation;
 	OwnerPawn->bUseControllerRotationYaw = ShouldControlRotation;
 
 	UCharacterMovementComponent* CharacterMovementComponent = OwnerPawn->FindComponentByClass<UCharacterMovementComponent>();
@@ -629,6 +633,55 @@ void UTargetSystemComponent::ControlRotation(const bool ShouldControlRotation) c
 	{
 		CharacterMovementComponent->bOrientRotationToMovement = !ShouldControlRotation;
 	}
+}
+
+FRotator UTargetSystemComponent::GetTargetRotation() const
+{
+	AActor* OtherActor = GetLockedOnTargetActor();
+	if (!IsValid(OwnerPlayerController))
+	{
+		TS_LOG(Warning, TEXT("UTargetSystemComponent::GetControlRotationOnTarget - OwnerPlayerController is not valid ..."))
+		return FRotator::ZeroRotator;
+	}
+
+	const FRotator ControlRotation = OwnerPlayerController->GetControlRotation();
+
+	const FVector CharacterLocation = OwnerActor->GetActorLocation();
+	const FVector OtherActorLocation = OtherActor->GetActorLocation();
+
+	// Find look at rotation
+	const FRotator LookRotation = FRotationMatrix::MakeFromX(OtherActorLocation - CharacterLocation).Rotator();
+	float Pitch = LookRotation.Pitch;
+	FRotator TargetRotation;
+	if (bAdjustPitchBasedOnDistanceToTargetUsingCurve)
+	{
+		const float Distance = GetDistanceFromCharacter(OtherActor);
+		const float CurveValue = PitchOffsetCurve->GetFloatValue(Distance);
+		Pitch += CurveValue;
+		TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+	}
+	else if (bAdjustPitchBasedOnDistanceToTarget)
+	{
+		const float DistanceToTarget = GetDistanceFromCharacter(OtherActor);
+		const float PitchInRange = (DistanceToTarget * PitchDistanceCoefficient + PitchDistanceOffset) * -1.0f;
+		const float PitchOffset = FMath::Clamp(PitchInRange, PitchMin, PitchMax);
+
+		Pitch = Pitch + PitchOffset;
+		TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+	}
+	else
+	{
+		if (bIgnoreLookInput)
+		{
+			TargetRotation = FRotator(Pitch, LookRotation.Yaw, ControlRotation.Roll);
+		}
+		else
+		{
+			TargetRotation = FRotator(ControlRotation.Pitch, LookRotation.Yaw, ControlRotation.Roll);
+		}
+	}
+
+	return LookRotation;
 }
 
 bool UTargetSystemComponent::IsInViewport(const AActor* TargetActor) const
