@@ -451,7 +451,8 @@ AActor* UTargetSystemComponent::FindNearestTarget(TArray<AActor*> Actors) const
 	// Find all actors we can line trace to
 	for (AActor* Actor : Actors)
 	{
-		const bool bHit = LineTraceForActor(Actor);
+		TArray<AActor*> ActorsToIgnore;
+		const bool bHit = LineTraceForActor(Actor, ActorsToIgnore);
 		if (bHit && IsInViewport(Actor))
 		{
 			ActorsHit.Add(Actor);
@@ -480,13 +481,13 @@ AActor* UTargetSystemComponent::FindNearestTarget(TArray<AActor*> Actors) const
 }
 
 
-bool UTargetSystemComponent::LineTraceForActor(AActor* OtherActor, const TArray<AActor*> ActorsToIgnore) const
+bool UTargetSystemComponent::LineTraceForActor(const AActor* OtherActor, const TArray<AActor*>& ActorsToIgnore) const
 {
 	FHitResult HitResult;
 	const bool bHit = LineTrace(HitResult, OtherActor, ActorsToIgnore);
 	if (bHit)
 	{
-		AActor* HitActor = HitResult.GetActor();
+		const AActor* HitActor = HitResult.GetActor();
 		if (HitActor == OtherActor)
 		{
 			return true;
@@ -496,7 +497,7 @@ bool UTargetSystemComponent::LineTraceForActor(AActor* OtherActor, const TArray<
 	return false;
 }
 
-bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, const AActor* OtherActor, const TArray<AActor*> ActorsToIgnore) const
+bool UTargetSystemComponent::LineTrace(FHitResult& OutHitResult, const AActor* OtherActor, const TArray<AActor*>& ActorsToIgnore) const
 {
 	FCollisionQueryParams Params = FCollisionQueryParams(FName("LineTraceSingle"));
 
@@ -505,9 +506,8 @@ bool UTargetSystemComponent::LineTrace(FHitResult& HitResult, const AActor* Othe
 	IgnoredActors += ActorsToIgnore;
 
 	Params.AddIgnoredActors(IgnoredActors);
-
 	return GetWorld()->LineTraceSingleByChannel(
-		HitResult,
+		OutHitResult,
 		OwnerActor->GetActorLocation(),
 		OtherActor->GetActorLocation(),
 		TargetableCollisionChannel,

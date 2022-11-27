@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "Components/ActorComponent.h"
+#include "Engine/HitResult.h"
 #include "TargetSystemComponent.generated.h"
 
 class UUserWidget;
@@ -206,8 +206,8 @@ private:
 
 	AActor* FindNearestTarget(TArray<AActor*> Actors) const;
 
-	bool LineTrace(FHitResult& HitResult, const AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
-	bool LineTraceForActor(AActor* OtherActor, TArray<AActor*> ActorsToIgnore = TArray<AActor*>()) const;
+	bool LineTrace(FHitResult& OutHitResult, const AActor* OtherActor, const TArray<AActor*>& ActorsToIgnore) const;
+	bool LineTraceForActor(const AActor* OtherActor, const TArray<AActor*>& ActorsToIgnore) const;
 
 	bool ShouldBreakLineOfSight() const;
 	void BreakLineOfSight();
