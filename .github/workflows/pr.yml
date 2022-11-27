@@ -1,0 +1,23 @@
+name: PR - Build Plugin & Run Tests
+
+on:
+  pull_request:
+    branches: [ master, dev, dev-ue5 ]
+
+concurrency: 
+  group: pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-on-pr-windows:
+    name: (Windows) Build
+    uses: ./.github/workflows/pr-tests-windows.yml
+    secrets:
+      WIN_UNREAL_ENGINE_ROOT: ${{ secrets.WIN_UNREAL_ENGINE_ROOT }}
+
+  build-linux:
+    name: (Linux) Build
+    uses: ./.github/workflows/build-linux.yml
+    secrets:
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
