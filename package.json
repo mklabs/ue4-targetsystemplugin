@@ -1,6 +1,6 @@
 {
   "name": "ue4-targetsystemplugin",
-  "version": "1.27.0",
+  "version": "1.27.1",
   "private": true,
   "description": "Target System Component for Unreal",
   "main": "index.js",
