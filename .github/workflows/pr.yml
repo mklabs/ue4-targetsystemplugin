@@ -11,7 +11,7 @@ concurrency:
 jobs:
   build-on-pr-windows:
     name: (Windows) Build
-    uses: ./.github/workflows/pr-tests-windows.yml
+    uses: ./.github/workflows/pr-windows.yml
     secrets:
       WIN_UNREAL_ENGINE_ROOT: ${{ secrets.WIN_UNREAL_ENGINE_ROOT }}
 
