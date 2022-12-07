@@ -38,3 +38,7 @@ Check the [Setup wiki page](https://github.com/mklabs/ue4-targetsystemplugin/wik
 
 MIT License.
 
+
+---
+
+Changes for test build CI.
