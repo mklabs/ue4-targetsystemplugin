@@ -1,5 +1,7 @@
 # Target System Plugin
 
+Supported engine versions: 5.0, 5.1, 5.2 (as per [latest release](https://github.com/mklabs/ue4-targetsystemplugin/releases))
+
 An UE4 plugin written entirely in C++ which adds support for a simple Dark Souls inspired Camera Lock On / Targeting system.
 
 It was first developed and tested in Blueprints following the implementation of the people over at Lurendium, with this tutorial series: [Part 1](http://web.archive.org/web/20190115073044/http://www.lurendium.com/target-system-similar-to-dark-souls/), [Part 2](http://web.archive.org/web/20190330014353/http://www.lurendium.com/target-system-similar-dark-souls-blueprint-part-2/), [Part 3](https://web.archive.org/web/20190320143734/http://www.lurendium.com/target-system-similar-to-dark-souls-blueprint-part-3-final/), and then converted and rewritten into a C++ module and plugin.
