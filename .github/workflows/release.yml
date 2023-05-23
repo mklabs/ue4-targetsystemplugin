@@ -1,4 +1,4 @@
-name: package-plugin-workflow
+name: Release build
 
 env:
   PLUGIN_NAME: TargetSystem
@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        unreal: ['5.1']
+        unreal: ['5.0', '5.1', '5.2']
 
     steps:
       - name: Checkout
@@ -29,6 +29,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
+
+      - name: Set .uplugin VersionName suffix (per unreal version)
+        run: >-
+          echo 'const fs = require("fs"); let data = JSON.parse(fs.readFileSync("./TargetSystem/TargetSystem.uplugin", "utf8")); data.VersionName = `${data.VersionName.split("+")[0]}+${{ matrix.unreal }}`; fs.writeFileSync("./TargetSystem/TargetSystem.uplugin", JSON.stringify(data, null, "\t")); ' | node -
 
       - name: Set outputs
         id: vars
@@ -61,7 +65,7 @@ jobs:
       - name: Upload source artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.PLUGIN_NAME }}_${{ steps.vars.outputs.uplugin_version_name }}_${{ steps.vars.outputs.sha_short }}
+          name: ${{ env.PLUGIN_NAME }}_${{ steps.vars.outputs.uplugin_version_name }}+${{ matrix.unreal }}_${{ steps.vars.outputs.sha_short }}
           path: |
             dist/
             !dist/Binaries

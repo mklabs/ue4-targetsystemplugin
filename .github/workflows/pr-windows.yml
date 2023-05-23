@@ -1,10 +1,8 @@
 name: (Windows) Build Plugin
 
 on:
-  workflow_call:
-    secrets:
-      WIN_UNREAL_ENGINE_ROOT:
-        required: true
+  pull_request:
+    branches: [ master ]
 
 jobs:
   windows-build-plugin:
@@ -15,11 +13,11 @@ jobs:
 
     strategy:
       matrix:
-        unreal: ['5.0', '5.1']
+        unreal: ['5.0', '5.1', '5.2']
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         
       - uses: actions/setup-node@v3
         with:

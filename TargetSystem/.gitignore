@@ -74,3 +74,6 @@ Plugins/*/Intermediate/*
 DerivedDataCache/*
 
 build_notes.txt
+
+# ue4 package builds
+dist/
