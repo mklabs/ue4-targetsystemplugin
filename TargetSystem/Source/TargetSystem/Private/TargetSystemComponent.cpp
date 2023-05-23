@@ -1,15 +1,16 @@
 // Copyright 2018-2021 Mickael Daniel. All Rights Reserved.
 
 #include "TargetSystemComponent.h"
-#include "TargetSystemTargetableInterface.h"
-#include "Components/WidgetComponent.h"
 #include "EngineUtils.h"
 #include "TargetSystemLog.h"
-#include "Engine/Classes/Camera/CameraComponent.h"
-#include "Engine/Classes/Kismet/GameplayStatics.h"
-#include "Engine/Public/TimerManager.h"
+#include "TargetSystemTargetableInterface.h"
+#include "Components/WidgetComponent.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
+#include "Engine/Classes/Camera/CameraComponent.h"
+#include "Engine/Public/TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 
 // Sets default values for this component's properties
