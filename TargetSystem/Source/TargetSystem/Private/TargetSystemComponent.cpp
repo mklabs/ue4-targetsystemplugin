@@ -500,20 +500,39 @@ bool UTargetSystemComponent::LineTraceForActor(const AActor* OtherActor, const T
 
 bool UTargetSystemComponent::LineTrace(FHitResult& OutHitResult, const AActor* OtherActor, const TArray<AActor*>& ActorsToIgnore) const
 {
-	FCollisionQueryParams Params = FCollisionQueryParams(FName("LineTraceSingle"));
-
+	if (!IsValid(OwnerActor))
+	{
+		UE_LOG(LogTargetSystem, Warning, TEXT("UTargetSystemComponent::LineTrace - Called with invalid OwnerActor: %s"), *GetNameSafe(OwnerActor))
+		return false;
+	}
+	
+	if (!IsValid(OtherActor))
+	{
+		UE_LOG(LogTargetSystem, Warning, TEXT("UTargetSystemComponent::LineTrace - Called with invalid OtherActor: %s"), *GetNameSafe(OtherActor))
+		return false;
+	}
+	
 	TArray<AActor*> IgnoredActors;
-	IgnoredActors.Init(OwnerActor, 1);
-	IgnoredActors += ActorsToIgnore;
-
+	IgnoredActors.Reserve(ActorsToIgnore.Num() + 1);
+	IgnoredActors.Add(OwnerActor);
+	IgnoredActors.Append(ActorsToIgnore);
+	
+	FCollisionQueryParams Params = FCollisionQueryParams(FName("LineTraceSingle"));
 	Params.AddIgnoredActors(IgnoredActors);
-	return GetWorld()->LineTraceSingleByChannel(
-		OutHitResult,
-		OwnerActor->GetActorLocation(),
-		OtherActor->GetActorLocation(),
-		TargetableCollisionChannel,
-		Params
-	);
+	
+	if (const UWorld* World = GetWorld(); IsValid(World))
+	{
+		return World->LineTraceSingleByChannel(
+			OutHitResult,
+			OwnerActor->GetActorLocation(),
+			OtherActor->GetActorLocation(),
+			TargetableCollisionChannel,
+			Params
+		);
+	}
+
+	UE_LOG(LogTargetSystem, Warning, TEXT("UTargetSystemComponent::LineTrace - Called with invalid World: %s"), *GetNameSafe(GetWorld()))
+	return false;
 }
 
 FRotator UTargetSystemComponent::GetControlRotationOnTarget(const AActor* OtherActor) const
