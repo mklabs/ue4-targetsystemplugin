@@ -1,0 +1,109 @@
+name: Release build
+
+env:
+  PLUGIN_NAME: TargetSystem
+
+on:
+  release:
+    types: [released]
+
+  workflow_dispatch:
+    inputs:
+      TAG_NAME:
+        description: 'Tag name that the major tag will point to'
+        required: true
+
+jobs:
+  windows-package-plugin-job:
+    if: github.actor == 'mklabs'
+    runs-on: [self-hosted, Windows]
+
+    strategy:
+      matrix:
+        unreal: ['5.0', '5.1', '5.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Set .uplugin VersionName suffix (per unreal version)
+        run: >-
+          echo 'const fs = require("fs"); let data = JSON.parse(fs.readFileSync("./TargetSystem/TargetSystem.uplugin", "utf8")); data.VersionName = `${data.VersionName.split("+")[0]}+${{ matrix.unreal }}`; fs.writeFileSync("./TargetSystem/TargetSystem.uplugin", JSON.stringify(data, null, "\t")); ' | node -
+
+      - name: Set outputs
+        id: vars
+        run: >-
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          echo "::set-output name=uplugin_version::$(echo 'console.log(JSON.parse(require("fs").readFileSync("./TargetSystem/TargetSystem.uplugin", "utf8")).VersionName)' | node -)"
+          echo "::set-output name=uplugin_version_name::$(echo 'console.log(JSON.parse(require("fs").readFileSync("./TargetSystem/TargetSystem.uplugin", "utf8")).VersionName.split("+")[0])' | node -)"
+
+      - name: Check outputs
+        run: >-
+          echo ${{ steps.vars.outputs.sha_short }}
+          echo ${{ steps.vars.outputs.uplugin_version }}
+          echo ${{ steps.vars.outputs.uplugin_version_name }}
+
+      - name: Store prev ue4 cli root
+        id: vars-ue4
+        run: >-
+          echo "::set-output name=prev_ue4_cli_root::$(ue4 root)"
+          
+      - name: Configuring UE CLI
+        run:
+          ue4 setroot "${{ secrets.WIN_UNREAL_ENGINE_ROOT }}UE_${{ matrix.unreal }}"
+
+      - name: Package plugin
+        run: |
+          ue4 package
+          mv dist ../dist
+        working-directory: TargetSystem
+
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PLUGIN_NAME }}_${{ steps.vars.outputs.uplugin_version_name }}+${{ matrix.unreal }}_${{ steps.vars.outputs.sha_short }}
+          path: |
+            dist/
+            !dist/Binaries
+            !dist/Intermediate
+
+      - name: Restore UE CLI Configuration
+        if: always()
+        run:
+          ue4 setroot "${{ steps.vars-ue4.outputs.prev_ue4_cli_root }}"
+
+  update-release-artifacts-job:
+    runs-on: ubuntu-latest
+    needs: [windows-package-plugin-job]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - uses: actions/download-artifact@v3
+        id: download
+        with:
+          path: artifacts
+          
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: artifacts
+
+      - name: 'Echo download path'
+        run: echo ${{steps.download.outputs.download-path}}
+
+      - name: Zipping artifacts
+        run: >-
+          for file in $(ls); do cd $file && zip -r ../$file.zip * && cd ..; done
+        working-directory: artifacts
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: artifacts/*.zip
+          tag: ${{ github.event.inputs.TAG_NAME || github.event.release.tag_name }}
+          overwrite: true
+          file_glob: true

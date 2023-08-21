@@ -1,0 +1,44 @@
+name: (Windows) Build Plugin
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  windows-build-plugin:
+    name: Build & Test
+
+    if: github.actor == 'mklabs'
+    runs-on: [self-hosted, Windows]
+
+    strategy:
+      matrix:
+        unreal: ['5.0', '5.1', '5.2']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Store prev ue4 cli root
+        id: vars-ue4
+        run: >-
+          echo "::set-output name=prev_ue4_cli_root::$(ue4 root)"
+
+      - name: Configuring UE CLI
+        run:
+          ue4 setroot "${{ secrets.WIN_UNREAL_ENGINE_ROOT }}UE_${{ matrix.unreal }}"
+
+      - name: Package plugin
+        run: ue4 package
+        working-directory: TargetSystem
+
+      # TODO: Sanity checks automated testing (missing unit / functional tests to run as of now)
+
+      - name: Restore UE CLI Configuration
+        if: always()
+        run:
+          ue4 setroot "${{ steps.vars-ue4.outputs.prev_ue4_cli_root }}"
