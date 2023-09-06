@@ -1,6 +1,6 @@
 # Target System Plugin
 
-Supported engine versions: 5.0, 5.1, 5.2 (as per [latest release](https://github.com/mklabs/ue4-targetsystemplugin/releases))
+Supported engine versions: 5.1, 5.2, 5.3 (as per [latest release](https://github.com/mklabs/ue4-targetsystemplugin/releases))
 
 An UE4 plugin written entirely in C++ which adds support for a simple Dark Souls inspired Camera Lock On / Targeting system.
 
