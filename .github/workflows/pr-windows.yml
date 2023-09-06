@@ -33,7 +33,7 @@ jobs:
           ue4 setroot "${{ secrets.WIN_UNREAL_ENGINE_ROOT }}UE_${{ matrix.unreal }}"
 
       - name: Package plugin
-        run: ue4 package
+        run: ue4 package -StrictIncludes
         working-directory: TargetSystem
 
       # TODO: Sanity checks automated testing (missing unit / functional tests to run as of now)

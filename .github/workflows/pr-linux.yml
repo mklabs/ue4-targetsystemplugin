@@ -36,7 +36,7 @@ jobs:
         run: docker exec unreal-${{ matrix.unreal }} ue4 setroot /home/ue4/UnrealEngine
 
       - name: Package plugin
-        run: docker exec unreal-${{ matrix.unreal }} ue4 package
+        run: docker exec unreal-${{ matrix.unreal }} ue4 package -StrictIncludes
 
       - name: rm container
         if: always()
