@@ -2,7 +2,7 @@ name: (Linux) Build Plugin
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   linux-build-plugin:
@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        unreal: ['5.1', '5.2', '5.3']
+        unreal: ['5.3.2', '5.4.4', '5.5.0-preview-1']
 
     steps:
       - name: Checkout
